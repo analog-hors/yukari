@@ -3,7 +3,6 @@ use std::{
     time::Instant,
 };
 
-use rayon::prelude::*;
 use tinyvec::ArrayVec;
 use yukari_movegen::{Board, Move};
 
@@ -96,7 +95,7 @@ pub fn divide(board: &Board, depth: u32, tt: &[PerftEntry]) -> u64 {
         board.generate(&mut moves);
 
         moves
-            .par_iter()
+            .iter()
             .map(|m| {
                 let board = board.make(*m);
                 let nodes = perft_with_hash(&board, depth - 1, tt);

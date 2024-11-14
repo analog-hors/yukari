@@ -170,7 +170,6 @@ impl<'a> Search<'a> {
             self.qnodes += 1;
 
             let board = board.make(m);
-
             let mut child_pv = ArrayVec::new();
             let score = -self.quiesce(&board, -beta, -alpha, &mut child_pv, ply + 1);
 
