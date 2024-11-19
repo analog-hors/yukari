@@ -222,6 +222,11 @@ impl<'a> Search<'a> {
         }
         let eval_int = self.eval_with_corrhist(board, board.eval(board.side()));
 
+        let rfp_margin = self.params.rfp_margin_base + self.params.rfp_margin_mul * depth;
+        if !board.in_check() && depth <= 2 && eval_int - rfp_margin >= upper_bound {
+            return upper_bound;
+        }
+
         const R: i32 = 3;
 
         if !board.in_check() && depth >= 2 && eval_int >= upper_bound {
@@ -237,11 +242,6 @@ impl<'a> Search<'a> {
                 self.nullmove_success += 1;
                 return upper_bound;
             }
-        }
-
-        let rfp_margin = self.params.rfp_margin_base + self.params.rfp_margin_mul * depth;
-        if !board.in_check() && depth == 1 && eval_int - rfp_margin >= upper_bound {
-            return upper_bound;
         }
 
         let moves: [Move; 256] = [Move::default(); 256];
