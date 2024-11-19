@@ -149,7 +149,7 @@ impl<'a> Search<'a> {
         alpha
     }
 
-    fn probe_tt(&self, board: &Board) -> Option<Move> {
+    fn probe_tt(&self, board: &Board, depth: i32, lower_bound: i32, upper_bound: i32, m: &mut Option<Move>) -> Option<i32> {
         let entry = (board.hash() & ((self.tt.len() - 1) as u64)) as usize;
         let entry = &self.tt[entry];
         let entry_key = entry.key.load(std::sync::atomic::Ordering::Relaxed);
@@ -157,7 +157,25 @@ impl<'a> Search<'a> {
         let entry: TtData = unsafe { std::mem::transmute(entry_data) };
 
         if entry_key ^ entry_data == board.hash() {
-            return entry.m;
+            if entry.depth as i32 >= depth {
+                let score = entry.score as i32;
+                match entry.flags {
+                    TtFlags::Exact => {
+                        return Some(score)
+                    },
+                    TtFlags::Upper => {
+                        if score <= lower_bound {
+                            return Some(lower_bound)
+                        }
+                    }
+                    TtFlags::Lower => {
+                        if score >= upper_bound {
+                            return Some(upper_bound)
+                        }
+                    }
+                }
+            }
+            *m = entry.m;
         }
         None
     }
@@ -191,7 +209,12 @@ impl<'a> Search<'a> {
 
         pv.set_len(0);
 
-        let tt_move = self.probe_tt(board);
+        let mut tt_move = None;
+        if let Some(score) = self.probe_tt(board, depth, lower_bound, upper_bound, &mut tt_move) {
+            if lower_bound == upper_bound - 1 {
+                return score;
+            }
+        }
         let eval_int = self.eval_with_corrhist(board, board.eval(board.side()));
 
         const R: i32 = 3;
