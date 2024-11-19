@@ -278,7 +278,7 @@ impl<'a> Search<'a> {
 
         let mut best_move = None;
         let mut best_score = i32::MIN;
-        let mut finding_pv = true;
+        let mut raised_lower_bound = false;
 
         for (i, m) in moves.into_iter().enumerate() {
             self.nodes += 1;
@@ -298,19 +298,16 @@ impl<'a> Search<'a> {
                 reduction += (depth * i).mul_add(self.params.lmr_mul, self.params.lmr_base) as i32; // credit: adam
             }
 
-            loop {
-                if !finding_pv {
-                    score = -self.search(&child_board, depth - reduction, -lower_bound - 1, -lower_bound, &mut child_pv, ply + 1, keystack);
-                }
-                if finding_pv || (score > lower_bound && score < upper_bound) {
-                    score = -self.search(&child_board, depth - reduction, -upper_bound, -lower_bound, &mut child_pv, ply + 1, keystack);
-                }
-            
-                if reduction > 1 && score > lower_bound {
-                    reduction = 1;
-                    continue;
-                }
-                break;
+            if i > 0 {
+                score = -self.search(&child_board, depth - reduction, -lower_bound - 1, -lower_bound, &mut child_pv, ply + 1, keystack);
+            }
+            if i > 0 && reduction > 1 && score > lower_bound {
+                reduction = 1;
+                score = -self.search(&child_board, depth - reduction, -lower_bound - 1, -lower_bound, &mut child_pv, ply + 1, keystack);
+            }
+            if i == 0 || lower_bound != upper_bound - 1 && score > lower_bound {
+                reduction = 1;
+                score = -self.search(&child_board, depth - reduction, -upper_bound, -lower_bound, &mut child_pv, ply + 1, keystack);
             }
 
             keystack.pop();
@@ -367,18 +364,18 @@ impl<'a> Search<'a> {
                 for m in child_pv {
                     pv.push(m);
                 }
-                finding_pv = false;
+                raised_lower_bound = true;
             }
         }
 
         self.write_tt(board, TtData {
             m: best_move,
             score: lower_bound as i16,
-            flags: if finding_pv { TtFlags::Upper } else { TtFlags::Exact },
+            flags: if raised_lower_bound { TtFlags::Exact } else { TtFlags::Upper },
             depth: depth as u8,
         });
 
-        if !board.in_check() && !best_move.unwrap().is_capture() && (!finding_pv || lower_bound <= eval_int) {
+        if !board.in_check() && !best_move.unwrap().is_capture() && (raised_lower_bound || lower_bound <= eval_int) {
             self.update_corrhist(board, depth, lower_bound - eval_int);
         }
 
