@@ -111,10 +111,15 @@ impl<'a> Search<'a> {
         (eval + entry / CORRHIST_GRAIN).clamp(-MATE_VALUE + 1, MATE_VALUE - 1)
     }
 
-    fn quiesce(&mut self, board: &Board, mut alpha: i32, beta: i32, pv: &mut ArrayVec<[Move; 32]>) -> i32 {
+    fn quiesce(&mut self, board: &Board, mut alpha: i32, beta: i32, pv: &mut ArrayVec<[Move; 64]>, ply: i32) -> i32 {
         let eval_int = self.eval_with_corrhist(board, board.eval(board.side()));
 
         pv.set_len(0);
+
+        // Emergency bailout
+        if ply == 63 {
+            return self.eval_with_corrhist(board, board.eval(board.side()));
+        }
 
         if eval_int >= beta {
             return beta;
@@ -127,7 +132,7 @@ impl<'a> Search<'a> {
             let board = board.make(m, self.zobrist);
 
             let mut child_pv = ArrayVec::new();
-            let score = -self.quiesce(&board, -beta, -alpha, &mut child_pv);
+            let score = -self.quiesce(&board, -beta, -alpha, &mut child_pv, ply + 1);
 
             if score >= beta {
                 alpha = beta;
@@ -191,10 +196,10 @@ impl<'a> Search<'a> {
     #[allow(clippy::too_many_arguments)]
     fn search(
         &mut self, board: &Board, mut depth: i32, mut lower_bound: i32, upper_bound: i32,
-        pv: &mut ArrayVec<[Move; 32]>, ply: i32, keystack: &mut Vec<u64>,
+        pv: &mut ArrayVec<[Move; 64]>, ply: i32, keystack: &mut Vec<u64>,
     ) -> i32 {
         // Emergency bailout
-        if ply == 100 {
+        if ply == 63 {
             return self.eval_with_corrhist(board, board.eval(board.side()));
         }
 
@@ -204,7 +209,7 @@ impl<'a> Search<'a> {
         }
 
         if depth <= 0 {
-            return self.quiesce(board, lower_bound, upper_bound, pv);
+            return self.quiesce(board, lower_bound, upper_bound, pv, ply);
         }
 
         pv.set_len(0);
@@ -382,7 +387,7 @@ impl<'a> Search<'a> {
         lower_bound
     }
 
-    pub fn search_root(&mut self, board: &Board, depth: i32, pv: &mut ArrayVec<[Move; 32]>, keystack: &mut Vec<u64>) -> i32 {
+    pub fn search_root(&mut self, board: &Board, depth: i32, pv: &mut ArrayVec<[Move; 64]>, keystack: &mut Vec<u64>) -> i32 {
         self.search(board, depth, -100_000, 100_000, pv, 0, keystack)
     }
 

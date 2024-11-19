@@ -85,15 +85,15 @@ impl Yukari {
     }
 
     /// Real search, falls back to dumb search in extreme time constraints
-    pub fn search(&mut self, best_pv: &mut ArrayVec<[Move; 32]>, tt: &mut [TtEntry]) {
+    pub fn search(&mut self, best_pv: &mut ArrayVec<[Move; 64]>, tt: &mut [TtEntry]) {
         let start = Instant::now();
         let stop_after = start + Duration::from_secs_f32(self.tc.search_time());
         let mut s = Search::new(Some(stop_after), &self.zobrist, tt, &mut self.corrhist, &self.params);
         // clone another to use inside the loop
         // Use a seperate backing data to record the current move set
         let mut depth = 1;
-        let mut pv: ArrayVec<[Move; 32]> = ArrayVec::new();
-        while depth <= 99 {
+        let mut pv = ArrayVec::new();
+        while depth < 64 {
             pv.set_len(0);
             // FIXME: We want to search one depth without time controls
             let score = s.search_root(&self.board, depth, &mut pv, &mut self.keystack);
@@ -193,7 +193,7 @@ impl Yukari {
         println!("{nodes} nodes {nps} nps");
     }
 
-    fn nnue_label(&mut self, tt: &mut [TtEntry]) {
+    fn nnue_label(&mut self) {
         let input = File::open("quiescent_positions_with_results").unwrap();
         let output = File::create("labeled.txt").unwrap();
         let input = io::BufReader::new(input).lines().map_while(Result::ok).collect::<Vec<_>>();
@@ -250,7 +250,7 @@ fn main() -> io::Result<()> {
         }
 
         if arg == "label" {
-            engine.nnue_label(&mut tt);
+            engine.nnue_label();
             return Ok(());
         }
     }
@@ -397,9 +397,7 @@ fn main() -> io::Result<()> {
                             engine.keystack.push(engine.board.hash());
                             // Find the next move to make
                             // TODO: Cleanups
-                            let pv: [Move; 32] = [Move::default(); 32];
-                            let mut pv = ArrayVec::from(pv);
-                            pv.set_len(0);
+                            let mut pv = ArrayVec::new();
                             engine.search(&mut pv, &mut tt);
                             // Choose the top move
                             let m = pv[0];
