@@ -1,5 +1,10 @@
 use super::{
-    bitlist::{Bitlist, BitlistArray}, eval::Eval, index::{PieceIndex, PieceIndexArray}, piecelist::Piecelist, piecemask::Piecemask, zobrist::Zobrist
+    bitlist::{Bitlist, BitlistArray},
+    eval::Eval,
+    index::{PieceIndex, PieceIndexArray},
+    piecelist::Piecelist,
+    piecemask::Piecemask,
+    zobrist::Zobrist,
 };
 use crate::{
     colour::Colour,

@@ -1,4 +1,10 @@
-use std::{sync::{atomic::{AtomicU32, AtomicU64, Ordering}, Mutex}, time::Instant};
+use std::{
+    sync::{
+        atomic::{AtomicU32, AtomicU64, Ordering},
+        Mutex,
+    },
+    time::Instant,
+};
 
 use rayon::prelude::*;
 use tinyvec::ArrayVec;

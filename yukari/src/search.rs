@@ -19,7 +19,16 @@ pub struct SearchParams {
 
 impl Default for SearchParams {
     fn default() -> Self {
-        Self { rfp_margin_base: 0, rfp_margin_mul: 37, lmr_base: 1.0, lmr_mul: 0.5, hist_bonus_base: 250, hist_bonus_mul: 300, hist_pen_base: 250, hist_pen_mul: 300 }
+        Self {
+            rfp_margin_base: 0,
+            rfp_margin_mul: 37,
+            lmr_base: 1.0,
+            lmr_mul: 0.5,
+            hist_bonus_base: 250,
+            hist_bonus_mul: 300,
+            hist_pen_base: 250,
+            hist_pen_mul: 300,
+        }
     }
 }
 
@@ -90,8 +99,22 @@ pub struct Search<'a> {
 
 impl<'a> Search<'a> {
     #[must_use]
-    pub fn new(stop_after: Option<Instant>, zobrist: &'a Zobrist, tt: &'a [TtEntry], corrhist: &'a mut [[i32; 16384]; 2], params: &'a SearchParams) -> Self {
-        Self { nodes: 0, qnodes: 0, nullmove_attempts: 0, nullmove_success: 0, stop_after, zobrist, history: [[0; 64]; 64], tt, corrhist, params }
+    pub fn new(
+        stop_after: Option<Instant>, zobrist: &'a Zobrist, tt: &'a [TtEntry], corrhist: &'a mut [[i32; 16384]; 2],
+        params: &'a SearchParams,
+    ) -> Self {
+        Self {
+            nodes: 0,
+            qnodes: 0,
+            nullmove_attempts: 0,
+            nullmove_success: 0,
+            stop_after,
+            zobrist,
+            history: [[0; 64]; 64],
+            tt,
+            corrhist,
+            params,
+        }
     }
 
     fn update_corrhist(&mut self, board: &Board, depth: i32, diff: i32) {
@@ -102,7 +125,8 @@ impl<'a> Search<'a> {
         let diff = diff * CORRHIST_GRAIN;
         let weight = 16.min(depth + 1);
 
-        *entry = ((*entry * (CORRHIST_WEIGHT_SCALE - weight) + diff * weight) / CORRHIST_WEIGHT_SCALE).clamp(-CORRHIST_MAX, CORRHIST_MAX);
+        *entry = ((*entry * (CORRHIST_WEIGHT_SCALE - weight) + diff * weight) / CORRHIST_WEIGHT_SCALE)
+            .clamp(-CORRHIST_MAX, CORRHIST_MAX);
     }
 
     fn eval_with_corrhist(&self, board: &Board, eval: i32) -> i32 {
@@ -165,17 +189,15 @@ impl<'a> Search<'a> {
             if entry.depth as i32 >= depth {
                 let score = entry.score as i32;
                 match entry.flags {
-                    TtFlags::Exact => {
-                        return Some(score)
-                    },
+                    TtFlags::Exact => return Some(score),
                     TtFlags::Upper => {
                         if score <= lower_bound {
-                            return Some(lower_bound)
+                            return Some(lower_bound);
                         }
                     }
                     TtFlags::Lower => {
                         if score >= upper_bound {
-                            return Some(upper_bound)
+                            return Some(upper_bound);
                         }
                     }
                 }
@@ -195,8 +217,8 @@ impl<'a> Search<'a> {
 
     #[allow(clippy::too_many_arguments)]
     fn search(
-        &mut self, board: &Board, mut depth: i32, mut lower_bound: i32, upper_bound: i32,
-        pv: &mut ArrayVec<[Move; 64]>, ply: i32, keystack: &mut Vec<u64>,
+        &mut self, board: &Board, mut depth: i32, mut lower_bound: i32, upper_bound: i32, pv: &mut ArrayVec<[Move; 64]>, ply: i32,
+        keystack: &mut Vec<u64>,
     ) -> i32 {
         // Emergency bailout
         if ply == 63 {
@@ -274,7 +296,8 @@ impl<'a> Search<'a> {
             }
 
             match (a.is_capture(), b.is_capture()) {
-                (false, false) => self.history[b.from.into_inner() as usize][b.dest.into_inner() as usize].cmp(&self.history[a.from.into_inner() as usize][a.dest.into_inner() as usize]),
+                (false, false) => self.history[b.from.into_inner() as usize][b.dest.into_inner() as usize]
+                    .cmp(&self.history[a.from.into_inner() as usize][a.dest.into_inner() as usize]),
                 (false, true) => Ordering::Greater,
                 (true, false) => Ordering::Less,
                 (true, true) => Ordering::Equal, // hack
@@ -300,15 +323,18 @@ impl<'a> Search<'a> {
             if lower_bound == upper_bound - 1 && depth >= 3 && i >= 4 && !board.in_check() && !m.is_capture() {
                 let depth = (depth as f32).ln();
                 let i = (i as f32).ln();
-                reduction += (depth * i).mul_add(self.params.lmr_mul, self.params.lmr_base) as i32; // credit: adam
+                reduction += (depth * i).mul_add(self.params.lmr_mul, self.params.lmr_base) as i32;
+                // credit: adam
             }
 
             if i > 0 {
-                score = -self.search(&child_board, depth - reduction, -lower_bound - 1, -lower_bound, &mut child_pv, ply + 1, keystack);
+                score =
+                    -self.search(&child_board, depth - reduction, -lower_bound - 1, -lower_bound, &mut child_pv, ply + 1, keystack);
             }
             if i > 0 && reduction > 1 && score > lower_bound {
                 reduction = 1;
-                score = -self.search(&child_board, depth - reduction, -lower_bound - 1, -lower_bound, &mut child_pv, ply + 1, keystack);
+                score =
+                    -self.search(&child_board, depth - reduction, -lower_bound - 1, -lower_bound, &mut child_pv, ply + 1, keystack);
             }
             if i == 0 || lower_bound != upper_bound - 1 && score > lower_bound {
                 reduction = 1;
@@ -348,12 +374,7 @@ impl<'a> Search<'a> {
                     *history += bonus as i16;
                 }
 
-                self.write_tt(board, TtData {
-                    m: best_move,
-                    score: upper_bound as i16,
-                    flags: TtFlags::Lower,
-                    depth: depth as u8,
-                });
+                self.write_tt(board, TtData { m: best_move, score: upper_bound as i16, flags: TtFlags::Lower, depth: depth as u8 });
 
                 if !board.in_check() && !m.is_capture() && upper_bound >= eval_int {
                     self.update_corrhist(board, depth, upper_bound - eval_int);
@@ -373,12 +394,15 @@ impl<'a> Search<'a> {
             }
         }
 
-        self.write_tt(board, TtData {
-            m: best_move,
-            score: lower_bound as i16,
-            flags: if raised_lower_bound { TtFlags::Exact } else { TtFlags::Upper },
-            depth: depth as u8,
-        });
+        self.write_tt(
+            board,
+            TtData {
+                m: best_move,
+                score: lower_bound as i16,
+                flags: if raised_lower_bound { TtFlags::Exact } else { TtFlags::Upper },
+                depth: depth as u8,
+            },
+        );
 
         if !board.in_check() && !best_move.unwrap().is_capture() && (raised_lower_bound || lower_bound <= eval_int) {
             self.update_corrhist(board, depth, lower_bound - eval_int);
