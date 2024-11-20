@@ -313,6 +313,8 @@ fn main() -> io::Result<()> {
                 println!("feature option=\"HistBonusMul -spin 300 0 600\"");
                 println!("feature option=\"HistPenaltyBase -spin 250 0 500\"");
                 println!("feature option=\"HistPenaltyMul -spin 300 0 600\"");
+                println!("feature option=\"Hash -spin 16 1 8092\"");
+                println!("feature option=\"Threads -spin 1 1 1\"");
                 // Communicate that feature reporting is done
                 println!("feature done=1");
             }
@@ -340,6 +342,8 @@ fn main() -> io::Result<()> {
                     "HistBonusMul" => engine.params.hist_bonus_mul = value,
                     "HistPenaltyBase" => engine.params.hist_pen_base = value,
                     "HistPenaltyMul" => engine.params.hist_pen_mul = value,
+                    "Hash" => tt = allocate_tt(value as usize), // UCIism. grumble grumble.
+                    "Threads" => (), // UCIism, grumble grumble.
                     _ => (),
                 }
             }
