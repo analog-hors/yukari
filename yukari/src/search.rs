@@ -178,7 +178,7 @@ impl<'a> Search<'a> {
         alpha
     }
 
-    fn probe_tt(&self, board: &Board, depth: i32, lower_bound: i32, upper_bound: i32, m: &mut Option<Move>) -> Option<i32> {
+    fn probe_tt(&self, board: &Board, depth: i32, ply: i32, lower_bound: i32, upper_bound: i32, m: &mut Option<Move>) -> Option<i32> {
         let entry = (board.hash() & ((self.tt.len() - 1) as u64)) as usize;
         let entry = &self.tt[entry];
         let entry_key = entry.key.load(std::sync::atomic::Ordering::Relaxed);
@@ -187,7 +187,13 @@ impl<'a> Search<'a> {
 
         if entry_key ^ entry_data == board.hash() {
             if entry.depth as i32 >= depth {
-                let score = entry.score as i32;
+                let mut score = entry.score as i32;
+                if score >= MATE_VALUE - 500 {
+                    score -= ply;
+                }
+                if score <= -MATE_VALUE + 500 {
+                    score += ply;
+                }
                 match entry.flags {
                     TtFlags::Exact => return Some(score),
                     TtFlags::Upper => {
@@ -207,9 +213,15 @@ impl<'a> Search<'a> {
         None
     }
 
-    fn write_tt(&self, board: &Board, data: TtData) {
+    fn write_tt(&self, board: &Board, ply: i32, mut data: TtData) {
         let entry = (board.hash() & ((self.tt.len() - 1) as u64)) as usize;
         let entry = &self.tt[entry];
+        if i32::from(data.score) >= MATE_VALUE - 500 {
+            data.score += ply as i16;
+        }
+        if i32::from(data.score) <= -MATE_VALUE + 500 {
+            data.score -= ply as i16;
+        }
         let data = unsafe { std::mem::transmute::<TtData, u64>(data) };
         entry.key.store(board.hash() ^ data, std::sync::atomic::Ordering::Relaxed);
         entry.data.store(data, std::sync::atomic::Ordering::Relaxed);
@@ -237,7 +249,7 @@ impl<'a> Search<'a> {
         pv.set_len(0);
 
         let mut tt_move = None;
-        if let Some(score) = self.probe_tt(board, depth, lower_bound, upper_bound, &mut tt_move) {
+        if let Some(score) = self.probe_tt(board, depth, ply, lower_bound, upper_bound, &mut tt_move) {
             if lower_bound == upper_bound - 1 {
                 return score;
             }
@@ -374,7 +386,7 @@ impl<'a> Search<'a> {
                     *history += bonus as i16;
                 }
 
-                self.write_tt(board, TtData { m: best_move, score: upper_bound as i16, flags: TtFlags::Lower, depth: depth as u8 });
+                self.write_tt(board, ply, TtData { m: best_move, score: upper_bound as i16, flags: TtFlags::Lower, depth: depth as u8 });
 
                 if !board.in_check() && !m.is_capture() && upper_bound >= eval_int {
                     self.update_corrhist(board, depth, upper_bound - eval_int);
@@ -396,6 +408,7 @@ impl<'a> Search<'a> {
 
         self.write_tt(
             board,
+            ply,
             TtData {
                 m: best_move,
                 score: lower_bound as i16,
