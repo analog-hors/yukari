@@ -27,7 +27,7 @@ pub struct BoardData {
 
 impl BoardData {
     /// Create a new board.
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             bitlist: BitlistArray::new(),
             piecelist: Piecelist::new(),

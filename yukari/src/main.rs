@@ -347,6 +347,9 @@ fn main() -> io::Result<()> {
                     _ => (),
                 }
             }
+            "eval" => {
+                println!("{}", engine.board.eval(engine.board.side()));
+            },
             // Hard would turn on thinking during opponent's time, easy would turn it off
             // we don't do it, so it's unimportant
             "hard" | "easy" => {}

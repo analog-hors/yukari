@@ -113,7 +113,7 @@ impl Board {
     /// Create a new empty board.
     #[must_use]
     #[inline]
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self { side: Colour::White, castle: (false, false, false, false), ep: None, data: BoardData::new() }
     }
 
