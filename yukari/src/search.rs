@@ -257,7 +257,7 @@ impl<'a> Search<'a> {
         let eval_int = self.eval_with_corrhist(board, board.eval(board.side()));
 
         let rfp_margin = self.params.rfp_margin_base + self.params.rfp_margin_mul * depth;
-        if !board.in_check() && depth <= 2 && eval_int - rfp_margin >= upper_bound {
+        if !board.in_check() && depth <= 3 && eval_int - rfp_margin >= upper_bound {
             return upper_bound;
         }
 
