@@ -1,11 +1,11 @@
 use crate::{Colour, Piece, Square};
 
-const HIDDEN_SIZE: usize = 128;
+const HIDDEN_SIZE: usize = 64;
 const SCALE: i32 = 400;
 const QA: i16 = 255;
 const QB: i16 = 64;
 
-static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../../../yukari_e81167fc.bin")) };
+static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../../../yukari_15061346.bin")) };
 
 #[inline]
 /// Clipped ReLU - Activation Function.
