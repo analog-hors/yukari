@@ -76,7 +76,7 @@ impl Yukari {
     /// Update with a new remaining time directly from the GUI
     /// Expects a value in centiseconds
     pub fn set_remaining(&mut self, csec: f32) {
-        self.tc.set_remaining(csec);
+        self.tc.set_remaining(10.0 * csec);
     }
 
     /// Generates valid moves for current posiition then finds the attempted
@@ -347,9 +347,7 @@ fn main() -> io::Result<()> {
                     _ => (),
                 }
             }
-            "eval" => {
-                println!("{}", engine.board.eval(engine.board.side()));
-            },
+            "eval" => println!("{}", engine.board.eval(engine.board.side())),
             // Hard would turn on thinking during opponent's time, easy would turn it off
             // we don't do it, so it's unimportant
             "hard" | "easy" => {}

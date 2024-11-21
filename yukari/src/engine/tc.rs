@@ -25,9 +25,9 @@ impl TimeControl {
         }
     }
 
-    /// Set the time using a centisecond value
-    pub fn set_remaining(&mut self, centiseconds: f32) {
-        self.remaining = centiseconds / 100.0;
+    /// Set the time using a millisecond value
+    pub fn set_remaining(&mut self, milliseconds: f32) {
+        self.remaining = milliseconds / 1000.0;
     }
 
     /// Increment the move number.
