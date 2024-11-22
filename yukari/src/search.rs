@@ -261,13 +261,13 @@ impl<'a> Search<'a> {
             return upper_bound;
         }
 
-        const R: i32 = 3;
+        let reduction = if depth > 6 { 4 } else { 3 };
 
         if !board.in_check() && depth >= 2 && eval_int >= upper_bound {
             keystack.push(board.hash());
             let board = board.make_null(self.zobrist);
             let mut child_pv = ArrayVec::new();
-            let score = -self.search(&board, depth - 1 - R, -upper_bound, -upper_bound + 1, &mut child_pv, ply + 1, keystack);
+            let score = -self.search(&board, depth - 1 - reduction, -upper_bound, -upper_bound + 1, &mut child_pv, ply + 1, keystack);
             keystack.pop();
 
             self.nullmove_attempts += 1;
