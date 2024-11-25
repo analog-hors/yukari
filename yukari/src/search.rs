@@ -1,4 +1,9 @@
-use std::{cmp::Ordering, i32, sync::atomic::AtomicU64, time::{Duration, Instant}};
+use std::{
+    cmp::Ordering,
+    i32,
+    sync::atomic::AtomicU64,
+    time::{Duration, Instant},
+};
 
 use tinyvec::ArrayVec;
 use yukari_movegen::{Board, Move, Zobrist};
@@ -180,7 +185,9 @@ impl<'a> Search<'a> {
         alpha
     }
 
-    fn probe_tt(&self, board: &Board, depth: i32, ply: i32, lower_bound: i32, upper_bound: i32, m: &mut Option<Move>) -> Option<i32> {
+    fn probe_tt(
+        &self, board: &Board, depth: i32, ply: i32, lower_bound: i32, upper_bound: i32, m: &mut Option<Move>,
+    ) -> Option<i32> {
         let entry = (board.hash() & ((self.tt.len() - 1) as u64)) as usize;
         let entry = &self.tt[entry];
         let entry_key = entry.key.load(std::sync::atomic::Ordering::Relaxed);
@@ -269,7 +276,8 @@ impl<'a> Search<'a> {
             keystack.push(board.hash());
             let board = board.make_null(self.zobrist);
             let mut child_pv = ArrayVec::new();
-            let score = -self.search(&board, depth - 1 - reduction, -upper_bound, -upper_bound + 1, &mut child_pv, ply + 1, keystack);
+            let score =
+                -self.search(&board, depth - 1 - reduction, -upper_bound, -upper_bound + 1, &mut child_pv, ply + 1, keystack);
             keystack.pop();
 
             self.nullmove_attempts += 1;
@@ -333,7 +341,15 @@ impl<'a> Search<'a> {
                 let now = Instant::now();
                 let verbose = now >= self.start + Duration::from_secs(2);
                 if verbose {
-                    println!("stat01: {} {} {} {} {} {}", now.duration_since(self.start).as_millis() / 10, self.nodes() + self.qnodes(), depth, moves.len() - i, moves.len(), m);
+                    println!(
+                        "stat01: {} {} {} {} {} {}",
+                        now.duration_since(self.start).as_millis() / 10,
+                        self.nodes() + self.qnodes(),
+                        depth,
+                        moves.len() - i,
+                        moves.len(),
+                        m
+                    );
                 }
             }
 
@@ -396,7 +412,11 @@ impl<'a> Search<'a> {
                     *history += bonus as i16;
                 }
 
-                self.write_tt(board, ply, TtData { m: best_move, score: upper_bound as i16, flags: TtFlags::Lower, depth: depth as u8 });
+                self.write_tt(
+                    board,
+                    ply,
+                    TtData { m: best_move, score: upper_bound as i16, flags: TtFlags::Lower, depth: depth as u8 },
+                );
 
                 if !board.in_check() && !m.is_capture() && upper_bound >= eval_int {
                     self.update_corrhist(board, depth, upper_bound - eval_int);
@@ -418,7 +438,13 @@ impl<'a> Search<'a> {
                     let now = Instant::now();
                     let verbose = now >= self.start + Duration::from_secs(2);
                     if verbose {
-                        print!("{} {:.2} {} {} ", if board.in_check() { depth - 1 } else { depth }, score, now.duration_since(self.start).as_millis() / 10, self.nodes() + self.qnodes());
+                        print!(
+                            "{} {:.2} {} {} ",
+                            if board.in_check() { depth - 1 } else { depth },
+                            score,
+                            now.duration_since(self.start).as_millis() / 10,
+                            self.nodes() + self.qnodes()
+                        );
                         for m in &*pv {
                             print!("{m} ");
                         }

@@ -343,7 +343,7 @@ fn main() -> io::Result<()> {
                     "HistPenaltyBase" => engine.params.hist_pen_base = value,
                     "HistPenaltyMul" => engine.params.hist_pen_mul = value,
                     "Hash" => tt = allocate_tt(value as usize), // UCIism. grumble grumble.
-                    "Threads" => (), // UCIism, grumble grumble.
+                    "Threads" => (),                            // UCIism, grumble grumble.
                     _ => (),
                 }
             }
