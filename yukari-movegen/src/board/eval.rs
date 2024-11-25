@@ -24,7 +24,7 @@ pub struct Network {
     /// Column-Major `1 x (2 * HIDDEN_SIZE)`
     /// matrix, we use it like this to make the
     /// code nicer in `Network::evaluate`.
-    output_weights: [i16; 2 * HIDDEN_SIZE],
+    output_weights: [Accumulator; 2],
     /// Scalar output bias.
     output_bias: i16,
 }
@@ -37,12 +37,12 @@ impl Network {
         let mut output = i32::from(self.output_bias);
 
         // Side-To-Move Accumulator -> Output.
-        for (&input, &weight) in us.vals.iter().zip(&self.output_weights[..HIDDEN_SIZE]) {
+        for (&input, &weight) in us.vals.iter().zip(&self.output_weights[0].vals) {
             output += crelu(input) * i32::from(weight);
         }
 
         // Not-Side-To-Move Accumulator -> Output.
-        for (&input, &weight) in them.vals.iter().zip(&self.output_weights[HIDDEN_SIZE..]) {
+        for (&input, &weight) in them.vals.iter().zip(&self.output_weights[1].vals) {
             output += crelu(input) * i32::from(weight);
         }
 
