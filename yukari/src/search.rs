@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, i32, sync::atomic::AtomicU64, time::Instant};
+use std::{cmp::Ordering, i32, sync::atomic::AtomicU64, time::{Duration, Instant}};
 
 use tinyvec::ArrayVec;
 use yukari_movegen::{Board, Move, Zobrist};
@@ -89,6 +89,7 @@ pub struct Search<'a> {
     qnodes: u64,
     nullmove_attempts: u64,
     nullmove_success: u64,
+    start: Instant,
     stop_after: Option<Instant>,
     zobrist: &'a Zobrist,
     history: [[i16; 64]; 64],
@@ -100,7 +101,7 @@ pub struct Search<'a> {
 impl<'a> Search<'a> {
     #[must_use]
     pub fn new(
-        stop_after: Option<Instant>, zobrist: &'a Zobrist, tt: &'a [TtEntry], corrhist: &'a mut [[i32; 16384]; 2],
+        start: Instant, stop_after: Option<Instant>, zobrist: &'a Zobrist, tt: &'a [TtEntry], corrhist: &'a mut [[i32; 16384]; 2],
         params: &'a SearchParams,
     ) -> Self {
         Self {
@@ -108,6 +109,7 @@ impl<'a> Search<'a> {
             qnodes: 0,
             nullmove_attempts: 0,
             nullmove_success: 0,
+            start,
             stop_after,
             zobrist,
             history: [[0; 64]; 64],
@@ -327,6 +329,14 @@ impl<'a> Search<'a> {
             let child_board = board.make(m, self.zobrist);
             let mut score = 0;
 
+            if ply == 0 {
+                let now = Instant::now();
+                let verbose = now >= self.start + Duration::from_secs(2);
+                if verbose {
+                    println!("stat01: {} {} {} {} {} {}", now.duration_since(self.start).as_millis() / 10, self.nodes() + self.qnodes(), depth, moves.len() - i, moves.len(), m);
+                }
+            }
+
             // Push the move to check for repetition draws
             keystack.push(board.hash());
 
@@ -403,6 +413,18 @@ impl<'a> Search<'a> {
                     pv.push(m);
                 }
                 raised_lower_bound = true;
+
+                if ply == 0 {
+                    let now = Instant::now();
+                    let verbose = now >= self.start + Duration::from_secs(2);
+                    if verbose {
+                        print!("{} {:.2} {} {} ", if board.in_check() { depth - 1 } else { depth }, score, now.duration_since(self.start).as_millis() / 10, self.nodes() + self.qnodes());
+                        for m in &*pv {
+                            print!("{m} ");
+                        }
+                        println!();
+                    }
+                }
             }
         }
 

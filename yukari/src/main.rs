@@ -94,7 +94,7 @@ impl Yukari {
     pub fn search(&mut self, best_pv: &mut ArrayVec<[Move; 64]>, tt: &mut [TtEntry]) {
         let start = Instant::now();
         let stop_after = start + Duration::from_secs_f32(self.tc.search_time());
-        let mut s = Search::new(Some(stop_after), &self.zobrist, tt, &mut self.corrhist, &self.params);
+        let mut s = Search::new(start, Some(stop_after), &self.zobrist, tt, &mut self.corrhist, &self.params);
         // clone another to use inside the loop
         // Use a seperate backing data to record the current move set
         let mut depth = 1;
@@ -181,8 +181,8 @@ impl Yukari {
         for fen in fens {
             let zobrist = Zobrist::new();
             let board = Board::from_fen(fen, &zobrist).unwrap();
-            let mut s = Search::new(None, &zobrist, tt, &mut self.corrhist, &self.params);
             let start = Instant::now();
+            let mut s = Search::new(start, None, &zobrist, tt, &mut self.corrhist, &self.params);
             let mut keystack = Vec::new();
             let mut pv = ArrayVec::new();
             let score = s.search_root(&board, 8, &mut pv, &mut keystack);
@@ -220,8 +220,8 @@ impl Yukari {
                     let fen = [board, stm, castling, ep].join(" ");
 
                     let board = Board::from_fen(&fen, &self.zobrist).unwrap();
-                    let mut s = Search::new(None, &self.zobrist, &tt, &mut corrhist, &self.params);
                     let start = Instant::now();
+                    let mut s = Search::new(start, None, &self.zobrist, &tt, &mut corrhist, &self.params);
                     let mut keystack = Vec::new();
                     let mut pv = ArrayVec::new();
                     let score = s.search_root(&board, 6, &mut pv, &mut keystack);
