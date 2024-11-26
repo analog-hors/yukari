@@ -14,6 +14,7 @@ const MATE_VALUE: i32 = 10_000;
 pub struct SearchParams {
     pub rfp_margin_base: i32,
     pub rfp_margin_mul: i32,
+    pub razor_margin_mul: i32,
     pub lmr_base: f32,
     pub lmr_mul: f32,
     pub hist_bonus_base: i32,
@@ -27,6 +28,7 @@ impl Default for SearchParams {
         Self {
             rfp_margin_base: 0,
             rfp_margin_mul: 37,
+            razor_margin_mul: 250,
             lmr_base: 1.0,
             lmr_mul: 0.5,
             hist_bonus_base: 250,
@@ -264,11 +266,20 @@ impl<'a> Search<'a> {
                 return score;
             }
         }
+
         let eval_int = self.eval_with_corrhist(board, board.eval(board.side()));
 
         let rfp_margin = self.params.rfp_margin_base + self.params.rfp_margin_mul * depth;
         if !board.in_check() && depth <= 3 && eval_int - rfp_margin >= upper_bound {
             return eval_int - rfp_margin;
+        }
+
+        let razor_margin = self.params.razor_margin_mul * depth;
+        if !board.in_check() && depth == 1 && lower_bound.abs() < 2000 && eval_int + razor_margin <= lower_bound {
+            let score = self.quiesce(board, lower_bound, lower_bound + 1, pv, ply);
+            if score <= lower_bound {
+                return score;
+            }
         }
 
         let reduction = if depth > 6 { 4 } else { 3 };
