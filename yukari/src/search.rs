@@ -143,19 +143,19 @@ impl<'a> Search<'a> {
     }
 
     fn quiesce(&mut self, board: &Board, mut alpha: i32, beta: i32, pv: &mut ArrayVec<[Move; 64]>, ply: i32) -> i32 {
-        let eval_int = self.eval_with_corrhist(board, board.eval(board.side()));
+        let mut best_score = self.eval_with_corrhist(board, board.eval(board.side()));
 
         pv.set_len(0);
 
         // Emergency bailout
         if ply == 63 {
-            return self.eval_with_corrhist(board, board.eval(board.side()));
+            return best_score;
         }
 
-        if eval_int >= beta {
-            return beta;
+        if best_score >= beta {
+            return best_score;
         }
-        alpha = alpha.max(eval_int);
+        alpha = alpha.max(best_score);
 
         board.generate_captures_incremental(|m| {
             self.qnodes += 1;
@@ -165,8 +165,9 @@ impl<'a> Search<'a> {
             let mut child_pv = ArrayVec::new();
             let score = -self.quiesce(&board, -beta, -alpha, &mut child_pv, ply + 1);
 
+            best_score = best_score.max(score);
+
             if score >= beta {
-                alpha = beta;
                 return false;
             }
 
@@ -182,7 +183,7 @@ impl<'a> Search<'a> {
             true
         });
 
-        alpha
+        best_score
     }
 
     fn probe_tt(
@@ -207,12 +208,12 @@ impl<'a> Search<'a> {
                     TtFlags::Exact => return Some(score),
                     TtFlags::Upper => {
                         if score <= lower_bound {
-                            return Some(lower_bound);
+                            return Some(score);
                         }
                     }
                     TtFlags::Lower => {
                         if score >= upper_bound {
-                            return Some(upper_bound);
+                            return Some(score);
                         }
                     }
                 }
@@ -267,7 +268,7 @@ impl<'a> Search<'a> {
 
         let rfp_margin = self.params.rfp_margin_base + self.params.rfp_margin_mul * depth;
         if !board.in_check() && depth <= 3 && eval_int - rfp_margin >= upper_bound {
-            return upper_bound;
+            return eval_int - rfp_margin;
         }
 
         let reduction = if depth > 6 { 4 } else { 3 };
@@ -284,7 +285,7 @@ impl<'a> Search<'a> {
 
             if score >= upper_bound {
                 self.nullmove_success += 1;
-                return upper_bound;
+                return score;
             }
         }
 
@@ -389,7 +390,7 @@ impl<'a> Search<'a> {
             if self.nodes.trailing_zeros() >= 10 {
                 if let Some(time) = self.stop_after {
                     if Instant::now() >= time {
-                        return lower_bound;
+                        return best_score;
                     }
                 }
             }
@@ -415,11 +416,11 @@ impl<'a> Search<'a> {
                 self.write_tt(
                     board,
                     ply,
-                    TtData { m: best_move, score: upper_bound as i16, flags: TtFlags::Lower, depth: depth as u8 },
+                    TtData { m: best_move, score: best_score as i16, flags: TtFlags::Lower, depth: depth as u8 },
                 );
 
-                if !board.in_check() && !m.is_capture() && upper_bound >= eval_int {
-                    self.update_corrhist(board, depth, upper_bound - eval_int);
+                if !board.in_check() && !m.is_capture() && best_score >= eval_int {
+                    self.update_corrhist(board, depth, best_score - eval_int);
                 }
 
                 return upper_bound;
@@ -459,17 +460,17 @@ impl<'a> Search<'a> {
             ply,
             TtData {
                 m: best_move,
-                score: lower_bound as i16,
+                score: best_score as i16,
                 flags: if raised_lower_bound { TtFlags::Exact } else { TtFlags::Upper },
                 depth: depth as u8,
             },
         );
 
-        if !board.in_check() && !best_move.unwrap().is_capture() && (raised_lower_bound || lower_bound <= eval_int) {
-            self.update_corrhist(board, depth, lower_bound - eval_int);
+        if !board.in_check() && !best_move.unwrap().is_capture() && (raised_lower_bound || best_score <= eval_int) {
+            self.update_corrhist(board, depth, best_score - eval_int);
         }
 
-        lower_bound
+        best_score
     }
 
     pub fn search_root(&mut self, board: &Board, depth: i32, pv: &mut ArrayVec<[Move; 64]>, keystack: &mut Vec<u64>) -> i32 {
