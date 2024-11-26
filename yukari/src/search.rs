@@ -275,7 +275,7 @@ impl<'a> Search<'a> {
         }
 
         let razor_margin = self.params.razor_margin_mul * depth;
-        if !board.in_check() && depth == 1 && lower_bound.abs() < 2000 && eval_int + razor_margin <= lower_bound {
+        if !board.in_check() && depth <= 2 && lower_bound.abs() < 2000 && eval_int + razor_margin <= lower_bound {
             let score = self.quiesce(board, lower_bound, lower_bound + 1, pv, ply);
             if score <= lower_bound {
                 return score;
