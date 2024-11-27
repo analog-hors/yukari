@@ -1,6 +1,5 @@
 use std::{
     cmp::Ordering,
-    i32,
     sync::atomic::AtomicU64,
     time::{Duration, Instant},
 };
@@ -142,6 +141,14 @@ impl<'a> Search<'a> {
         const CORRHIST_GRAIN: i32 = 256;
         let entry = &self.corrhist[board.side() as usize][board.hash_pawns(self.zobrist) as usize & 16383];
         (eval + entry / CORRHIST_GRAIN).clamp(-MATE_VALUE + 1, MATE_VALUE - 1)
+    }
+
+    fn update_history(&mut self, m: Move, bonus: i32) {
+        const HISTORY_MAX: i32 = 16384;
+        let bonus = bonus.clamp(-HISTORY_MAX, HISTORY_MAX);
+        let history = &mut self.history[m.from.into_inner() as usize][m.dest.into_inner() as usize];
+        let bonus = bonus - (*history as i32) * bonus.abs() / HISTORY_MAX;
+        *history += bonus as i16;
     }
 
     fn quiesce(&mut self, board: &Board, mut alpha: i32, beta: i32, pv: &mut ArrayVec<[Move; 64]>, ply: i32) -> i32 {
@@ -407,34 +414,19 @@ impl<'a> Search<'a> {
             }
 
             if score >= upper_bound {
-                const HISTORY_MAX: i32 = 16384;
-                let bonus = (self.params.hist_bonus_mul * depth - self.params.hist_bonus_base).clamp(-HISTORY_MAX, HISTORY_MAX);
-                let penalty = (self.params.hist_pen_mul * depth - self.params.hist_pen_base).clamp(-HISTORY_MAX, HISTORY_MAX);
+                let bonus = self.params.hist_bonus_mul * depth - self.params.hist_bonus_base;
+                let penalty = self.params.hist_pen_mul * depth - self.params.hist_pen_base;
                 if !m.is_capture() {
                     for m in moves.into_iter().take(i) {
                         if m.is_capture() {
                             continue;
                         }
-                        let history = &mut self.history[m.from.into_inner() as usize][m.dest.into_inner() as usize];
-                        let bonus = -penalty - (*history as i32) * penalty / HISTORY_MAX;
-                        *history += bonus as i16;
+                        self.update_history(m, -penalty);
                     }
-                    let history = &mut self.history[m.from.into_inner() as usize][m.dest.into_inner() as usize];
-                    let bonus = bonus - (*history as i32) * bonus / HISTORY_MAX;
-                    *history += bonus as i16;
+                    self.update_history(m, bonus);
                 }
 
-                self.write_tt(
-                    board,
-                    ply,
-                    TtData { m: best_move, score: best_score as i16, flags: TtFlags::Lower, depth: depth as u8 },
-                );
-
-                if !board.in_check() && !m.is_capture() && best_score >= eval_int {
-                    self.update_corrhist(board, depth, best_score - eval_int);
-                }
-
-                return upper_bound;
+                break;
             }
 
             if score > lower_bound {
@@ -472,12 +464,12 @@ impl<'a> Search<'a> {
             TtData {
                 m: best_move,
                 score: best_score as i16,
-                flags: if raised_lower_bound { TtFlags::Exact } else { TtFlags::Upper },
+                flags: if best_score >= upper_bound { TtFlags::Lower } else if raised_lower_bound { TtFlags::Exact } else { TtFlags::Upper },
                 depth: depth as u8,
             },
         );
 
-        if !board.in_check() && !best_move.unwrap().is_capture() && (raised_lower_bound || best_score <= eval_int) {
+        if !board.in_check() && !best_move.unwrap().is_capture() && (raised_lower_bound || (best_score >= upper_bound && best_score >= eval_int) || (best_score <= lower_bound && best_score <= eval_int)) {
             self.update_corrhist(board, depth, best_score - eval_int);
         }
 
