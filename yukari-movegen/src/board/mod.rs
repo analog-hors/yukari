@@ -1,7 +1,7 @@
 use std::{
     convert::{TryFrom, TryInto},
     ffi::CString,
-    fmt::Display,
+    fmt::{Display, Write},
 };
 
 use tinyvec::ArrayVec;
@@ -917,6 +917,114 @@ impl Board {
         board.set_ep(zobrist, None);
         board.data.toggle_side(zobrist);
         board
+    }
+
+    /// # Panics
+    /// Panics when a nonsense move is encountered.
+    #[must_use]
+    pub fn to_san(&self, m: Move, zobrist: &Zobrist) -> String {
+        let mut san = String::new();
+
+        // Special case: castling
+        if m.kind == MoveType::Castle {
+            if m.dest > m.from {
+                write!(san, "O-O").unwrap();
+            } else {
+                write!(san, "O-O-O").unwrap();
+            }
+            return san;
+        }
+
+        // Moving piece
+        let piece = self.piece_from_square(m.from).unwrap();
+        let piece_char = match piece {
+            Piece::Pawn => "",
+            Piece::Knight => "N",
+            Piece::Bishop => "B",
+            Piece::Rook => "R",
+            Piece::Queen => "Q",
+            Piece::King => "K",
+        };
+        write!(san, "{piece_char}").unwrap();
+
+        // Disambiguation
+        let attacks = self.data.attacks_to(m.dest, self.side) & Bitlist::mask_from_colour(self.side) & !Bitlist::from_piece(self.data.piece_index(m.from).unwrap());
+        let rank = Rank::from(m.from);
+        let file = File::from(m.from);
+        let mut piece_on_same_rank = false;
+        let mut piece_on_same_file = false;
+        for attacker in attacks {
+            let attacker_square = self.data.square_of_piece(attacker);
+            let attacker_type = self.piece_from_bit(attacker);
+            if attacker_type != piece {
+                continue;
+            }
+            let attacker_rank = Rank::from(attacker_square);
+            let attacker_file = File::from(attacker_square);
+            piece_on_same_rank |= attacker_rank == rank;
+            piece_on_same_file |= attacker_file == file;
+        }
+
+        if piece != Piece::Pawn {
+            if piece_on_same_rank {
+                write!(san, "{file}").unwrap();
+            }
+            if piece_on_same_file {
+                write!(san, "{rank}").unwrap();
+            }
+        }
+
+        // Capture?
+        if m.is_capture() {
+            // Pawns always have their file.
+            if piece == Piece::Pawn {
+                write!(san, "{file}").unwrap();
+            }
+            write!(san, "x").unwrap();
+        }
+
+        let rank = Rank::from(m.dest);
+        let file = File::from(m.dest);
+        write!(san, "{file}{rank}").unwrap();
+
+        // Promotion?
+        if matches!(m.kind, MoveType::Promotion | MoveType::CapturePromotion) {
+            let piece_char = match m.prom.unwrap() {
+                Piece::Pawn => "",
+                Piece::Knight => "N",
+                Piece::Bishop => "B",
+                Piece::Rook => "R",
+                Piece::Queen => "Q",
+                Piece::King => "K",
+            };
+            write!(san, "={piece_char}").unwrap();
+        }
+
+        // Check?
+        let child = self.make(m, zobrist);
+        if child.in_check() {
+            // Checkmate?
+            let mut moves = ArrayVec::new();
+            child.generate(&mut moves);
+            if moves.is_empty() {
+                write!(san, "#").unwrap();
+            } else {
+                write!(san, "+").unwrap();
+            }
+        }
+
+        san
+    }
+
+    #[must_use]
+    pub fn pv_to_san(&self, pv: &[Move], zobrist: &Zobrist) -> String {
+        let mut s = String::new();
+        let mut board = self.clone();
+        for &m in pv {
+            write!(s, "{} ", board.to_san(m, zobrist)).unwrap();
+            board = board.make(m, zobrist);
+        }
+        s
     }
 }
 

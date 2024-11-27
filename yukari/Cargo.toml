@@ -11,6 +11,8 @@ yukari-movegen = { path = "../yukari-movegen" }
 rand = "0.8"
 tinyvec = "1.5"
 rayon = "1.10.0"
+colored = "2.1.0"
+indicatif = "0.17.9"
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["real_blackbox"]}

@@ -4,6 +4,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use indicatif::{ProgressBar, ProgressStyle};
 use tinyvec::ArrayVec;
 use yukari_movegen::{Board, Move, Zobrist};
 
@@ -91,6 +92,7 @@ pub fn allocate_tt(megabytes: usize) -> Vec<TtEntry> {
 }
 
 pub struct Search<'a> {
+    human_output: bool,
     nodes: u64,
     qnodes: u64,
     nullmove_attempts: u64,
@@ -108,9 +110,10 @@ impl<'a> Search<'a> {
     #[must_use]
     pub fn new(
         start: Instant, stop_after: Option<Instant>, zobrist: &'a Zobrist, tt: &'a [TtEntry], corrhist: &'a mut [[i32; 16384]; 2],
-        params: &'a SearchParams,
+        params: &'a SearchParams, human_output: bool,
     ) -> Self {
         Self {
+            human_output,
             nodes: 0,
             qnodes: 0,
             nullmove_attempts: 0,
@@ -345,6 +348,18 @@ impl<'a> Search<'a> {
             }
         });
 
+        let progress = if ply == 0 && self.human_output { 
+            let progress = ProgressBar::new(moves.len() as u64);
+            progress.set_style(
+                ProgressStyle::with_template("[{bar:40.magenta/red}] {msg:30!}")
+                    .unwrap()
+                    .progress_chars("━╸ "),
+            );
+            Some(progress) 
+        } else { 
+            None 
+        };
+
         let mut best_move = None;
         let mut best_score = i32::MIN;
         let mut raised_lower_bound = false;
@@ -360,15 +375,21 @@ impl<'a> Search<'a> {
                 let now = Instant::now();
                 let verbose = now >= self.start + Duration::from_secs(2);
                 if verbose {
-                    println!(
-                        "stat01: {} {} {} {} {} {}",
-                        now.duration_since(self.start).as_millis() / 10,
-                        self.nodes() + self.qnodes(),
-                        depth,
-                        moves.len() - i,
-                        moves.len(),
-                        m
-                    );
+                    if self.human_output {
+                        let progress = progress.as_ref().unwrap();
+                        progress.inc(1);
+                        progress.set_message(format!("{} ({} nodes)", board.to_san(m, self.zobrist), self.nodes() + self.qnodes()));
+                    } else {
+                        println!(
+                            "stat01: {} {} {} {} {} {}",
+                            now.duration_since(self.start).as_millis() / 10,
+                            self.nodes() + self.qnodes(),
+                            depth,
+                            moves.len() - i,
+                            moves.len(),
+                            m
+                        );
+                    }
                 }
             }
 
@@ -408,6 +429,9 @@ impl<'a> Search<'a> {
             if self.nodes.trailing_zeros() >= 10 {
                 if let Some(time) = self.stop_after {
                     if Instant::now() >= time {
+                        if let Some(progress) = progress {
+                            progress.finish_and_clear();
+                        }
                         return best_score;
                     }
                 }
@@ -442,20 +466,26 @@ impl<'a> Search<'a> {
                     let now = Instant::now();
                     let verbose = now >= self.start + Duration::from_secs(2);
                     if verbose {
-                        print!(
-                            "{} {:.2} {} {} ",
-                            if board.in_check() { depth - 1 } else { depth },
-                            score,
-                            now.duration_since(self.start).as_millis() / 10,
-                            self.nodes() + self.qnodes()
-                        );
-                        for m in &*pv {
-                            print!("{m} ");
+                        let now = now.duration_since(self.start);
+                        let unextended_depth = if board.in_check() { depth - 1 } else { depth };
+                        if self.human_output {
+                            let progress = progress.as_ref().unwrap();
+                            progress.println(format!("{:>2} {:>+6.2} {:>8.3} {:>9}\t{}", unextended_depth, ((best_score as f32) / 100.0), now.as_secs_f32(), self.nodes() + self.qnodes(), board.pv_to_san(pv, self.zobrist)));
+                        } else {
+                            print!("{} {} {} {} ", depth, score, now.as_millis() / 10, self.nodes() + self.qnodes());
+                            for m in &*pv {
+                                print!("{m} ");
+                            }
+                            println!();
                         }
-                        println!();
                     }
                 }
             }
+        }
+
+        if ply == 0 && self.human_output {
+            let progress = progress.as_ref().unwrap();
+            progress.finish_and_clear();
         }
 
         self.write_tt(

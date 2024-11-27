@@ -6,6 +6,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use colored::Colorize;
 use rayon::prelude::*;
 use tinyvec::ArrayVec;
 use yukari::{
@@ -91,10 +92,10 @@ impl Yukari {
     }
 
     /// Real search, falls back to dumb search in extreme time constraints
-    pub fn search(&mut self, best_pv: &mut ArrayVec<[Move; 64]>, tt: &mut [TtEntry]) {
+    pub fn search(&mut self, best_pv: &mut ArrayVec<[Move; 64]>, tt: &mut [TtEntry], human_output: bool) {
         let start = Instant::now();
         let stop_after = start + Duration::from_secs_f32(self.tc.search_time());
-        let mut s = Search::new(start, Some(stop_after), &self.zobrist, tt, &mut self.corrhist, &self.params);
+        let mut s = Search::new(start, Some(stop_after), &self.zobrist, tt, &mut self.corrhist, &self.params, human_output);
         // clone another to use inside the loop
         // Use a seperate backing data to record the current move set
         let mut depth = 1;
@@ -110,11 +111,15 @@ impl Yukari {
             // If we have a pv that's not just empty from bailing out use that as our best moves
             best_pv.clone_from(&pv);
             let now = Instant::now().duration_since(start);
-            print!("{} {:.2} {} {} ", depth, score, now.as_millis() / 10, s.nodes() + s.qnodes());
-            for m in &pv {
-                print!("{m} ");
+            if human_output {
+                println!("{:>2} {:>+6.2} {:>8.3} {:>9}\t{}", depth.to_string().bold(), ((score as f32) / 100.0), now.as_secs_f32(), s.nodes() + s.qnodes(), self.board.pv_to_san(&pv, &self.zobrist));
+            } else {
+                print!("{} {} {} {} ", depth, score, now.as_millis() / 10, s.nodes() + s.qnodes());
+                for m in &pv {
+                    print!("{m} ");
+                }
+                println!();
             }
-            println!();
             depth += 1;
         }
         println!("# QS: {:.3}%", (100 * s.qnodes()) as f64 / (s.nodes() as f64 + s.qnodes() as f64));
@@ -177,21 +182,17 @@ impl Yukari {
         ];
 
         let mut nodes = 0;
+        let zobrist = Zobrist::new();
         let start = Instant::now();
         for fen in fens {
-            let zobrist = Zobrist::new();
             let board = Board::from_fen(fen, &zobrist).unwrap();
             let start = Instant::now();
-            let mut s = Search::new(start, None, &zobrist, tt, &mut self.corrhist, &self.params);
+            let mut s = Search::new(start, None, &zobrist, tt, &mut self.corrhist, &self.params, true);
             let mut keystack = Vec::new();
             let mut pv = ArrayVec::new();
             let score = s.search_root(&board, 8, &mut pv, &mut keystack);
             let now = Instant::now().duration_since(start);
-            print!("10 {score:.2} {} {} ", now.as_millis() / 10, s.nodes() + s.qnodes());
-            for m in pv {
-                print!("{m} ");
-            }
-            println!();
+            println!("10 {score:.2} {} {} {}", now.as_millis() / 10, s.nodes() + s.qnodes(), board.pv_to_san(&pv, &zobrist));
             nodes += s.nodes() + s.qnodes();
         }
         let now = Instant::now().duration_since(start);
@@ -221,7 +222,7 @@ impl Yukari {
 
                     let board = Board::from_fen(&fen, &self.zobrist).unwrap();
                     let start = Instant::now();
-                    let mut s = Search::new(start, None, &self.zobrist, &tt, &mut corrhist, &self.params);
+                    let mut s = Search::new(start, None, &self.zobrist, &tt, &mut corrhist, &self.params, true);
                     let mut keystack = Vec::new();
                     let mut pv = ArrayVec::new();
                     let score = s.search_root(&board, 6, &mut pv, &mut keystack);
@@ -258,6 +259,7 @@ impl Default for Yukari {
 fn main() -> io::Result<()> {
     let mut engine = Yukari::new();
     let mut tt = allocate_tt(16);
+    let mut human_output = true;
 
     for arg in std::env::args() {
         if arg == "bench" {
@@ -285,7 +287,9 @@ fn main() -> io::Result<()> {
         #[allow(clippy::match_same_arms)]
         match cmd {
             // Identification for engines that auto switch between protocols
-            "xboard" => {}
+            "xboard" => {
+                human_output = false; // :(
+            }
             // This is where we send our features
             "protover" => {
                 // v1 won't send this anyway and we need v2
@@ -376,7 +380,7 @@ fn main() -> io::Result<()> {
                 engine.mode = Mode::Normal;
                 // When we get go we should make a move immediately
                 let mut pv = ArrayVec::new();
-                engine.search(&mut pv, &mut tt);
+                engine.search(&mut pv, &mut tt, human_output);
                 // Choose the top move
                 let m = pv[0];
                 // We must actually make the move locally too
@@ -419,7 +423,7 @@ fn main() -> io::Result<()> {
                             // Find the next move to make
                             // TODO: Cleanups
                             let mut pv = ArrayVec::new();
-                            engine.search(&mut pv, &mut tt);
+                            engine.search(&mut pv, &mut tt, human_output);
                             // Choose the top move
                             let m = pv[0];
                             // We must actually make the move locally too

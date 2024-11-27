@@ -354,7 +354,7 @@ impl Rank {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum File {
     A,
     B,
