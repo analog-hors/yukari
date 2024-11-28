@@ -292,7 +292,7 @@ impl<'a> Search<'a> {
             }
         }
 
-        let reduction = if depth > 6 { 4 } else { 3 };
+        let reduction = if depth > 6 { 4 } else { 3 } + ((eval_int - upper_bound) / 200).max(0);
 
         if !board.in_check() && depth >= 2 && eval_int >= upper_bound {
             keystack.push(board.hash());
