@@ -295,7 +295,7 @@ fn main() -> io::Result<()> {
                 // v1 won't send this anyway and we need v2
                 assert_eq!(args, "2");
                 // Do features individually
-                println!("feature myname=\"Yukari 20072021\"");
+                println!("feature myname=\"Yukari 2024.12.1\"");
                 // No signals support
                 println!("feature sigint=0 sigterm=0");
                 // Don't currently understand enough to reuse the engine for next game
@@ -309,6 +309,7 @@ fn main() -> io::Result<()> {
                 // We support hash table allocation sizing.
                 println!("feature memory=1");
                 // Tunables!
+                /*
                 println!("feature option=\"RfpMarginBase -spin 0 0 100\"");
                 println!("feature option=\"RfpMarginMul -spin 75 0 1000\"");
                 println!("feature option=\"LmrBase -spin 100 0 500\"");
@@ -317,6 +318,7 @@ fn main() -> io::Result<()> {
                 println!("feature option=\"HistBonusMul -spin 300 0 600\"");
                 println!("feature option=\"HistPenaltyBase -spin 250 0 500\"");
                 println!("feature option=\"HistPenaltyMul -spin 300 0 600\"");
+                */
                 println!("feature option=\"Hash -spin 16 1 8092\"");
                 println!("feature option=\"Threads -spin 1 1 1\"");
                 // Communicate that feature reporting is done

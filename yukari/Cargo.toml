@@ -1,6 +1,6 @@
 [package]
 name = "yukari"
-version = "0.1.0"
+version = "2024.12.1"
 authors = ["Yukari Chess <yukarichess@gmail.com>"]
 edition = "2021"
 
