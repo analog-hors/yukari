@@ -8,7 +8,7 @@ const QB: i16 = 64;
 static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../../../yukari_3e6c0af8.bin")) };
 
 #[inline]
-/// Clipped ReLU - Activation Function.
+/// Clipped `ReLU` - Activation Function.
 /// Note that this takes the i16s in the accumulator to i32s.
 fn crelu(x: i16) -> i32 {
     i32::from(x).clamp(0, i32::from(QA))

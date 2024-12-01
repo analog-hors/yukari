@@ -1,14 +1,11 @@
 use std::{
-    sync::{
-        atomic::{AtomicU32, AtomicU64, Ordering},
-        Mutex,
-    },
+    sync::atomic::{AtomicU64, Ordering},
     time::Instant,
 };
 
 use rayon::prelude::*;
 use tinyvec::ArrayVec;
-use yukari_movegen::{perft, Board, Move, Zobrist};
+use yukari_movegen::{Board, Move, Zobrist};
 
 #[derive(Default)]
 #[repr(align(16))]
