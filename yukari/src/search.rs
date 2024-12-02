@@ -340,11 +340,17 @@ impl<'a> Search<'a> {
             }
 
             match (a.is_capture(), b.is_capture()) {
-                (false, false) => self.history[b.from.into_inner() as usize][b.dest.into_inner() as usize]
-                    .cmp(&self.history[a.from.into_inner() as usize][a.dest.into_inner() as usize]),
+                (false, false) => {
+                    self.history[b.from.into_inner() as usize][b.dest.into_inner() as usize]
+                    .cmp(&self.history[a.from.into_inner() as usize][a.dest.into_inner() as usize])
+                }
                 (false, true) => Ordering::Greater,
                 (true, false) => Ordering::Less,
-                (true, true) => Ordering::Equal, // hack
+                (true, true) => {
+                    board.piece_from_square(b.dest)
+                        .cmp(&board.piece_from_square(a.dest))
+                        .then_with(|| board.piece_from_square(a.from).cmp(&board.piece_from_square(b.from)))
+                }
             }
         });
 
