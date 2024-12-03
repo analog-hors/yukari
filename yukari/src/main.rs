@@ -32,6 +32,7 @@ enum Mode {
 pub struct Yukari {
     board: Board,
     tc: TimeControl,
+    max_depth: Option<i32>,
     mode: Mode,
     zobrist: Zobrist,
     keystack: Vec<u64>,
@@ -49,6 +50,7 @@ impl Yukari {
             board: Board::startpos(&zobrist),
             // Time controls are uninitialized
             tc: TimeControl::new(TimeMode::MoveTime(0)),
+            max_depth: None,
             // Normal move making is on by default
             mode: Mode::Normal,
             zobrist,
@@ -80,6 +82,10 @@ impl Yukari {
         self.tc.set_remaining(10.0 * csec);
     }
 
+    pub fn set_depth(&mut self, depth: i32) {
+        self.max_depth = Some(depth);
+    }
+
     /// Generates valid moves for current posiition then finds the attempted
     /// move in the list
     #[must_use]
@@ -103,7 +109,8 @@ impl Yukari {
         // Use a seperate backing data to record the current move set
         let mut depth = 1;
         let mut pv = ArrayVec::new();
-        while depth < 64 {
+        let max_depth = self.max_depth.unwrap_or(63);
+        while depth <= max_depth {
             pv.set_len(0);
             // FIXME: We want to search one depth without time controls
             let score = s.search_root(&self.board, depth, &mut pv, &mut self.keystack);
@@ -383,7 +390,8 @@ fn main() -> io::Result<()> {
             // the value is in centiseconds
             "time" => engine.set_remaining(f32::from_str(args).unwrap()),
             // TODO: Should we care? Right now we don't have any logic to handle opponent time seperate
-            "otim" => {}
+            "otim" => {},
+            "sd" => engine.set_depth(i32::from_str(args).unwrap()),
             "go" => {
                 engine.mode = Mode::Normal;
                 // When we get go we should make a move immediately
