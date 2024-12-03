@@ -35,14 +35,19 @@ impl TimeControl {
         self.move_number += 1;
     }
 
-    /// Compute the time to search.
+    /// Compute the soft and hard time limits to search.
     #[must_use]
-    pub fn search_time(&self) -> f32 {
+    pub fn search_time(&self) -> (f32, f32) {
         match self.mode {
-            TimeMode::MoveTime(millisecs) => (millisecs as f32 / 1000.0) - 0.02,
+            TimeMode::MoveTime(millisecs) => {
+                let secs = (millisecs as f32 / 1000.0) - 0.02;
+                (secs, secs)
+            },
             TimeMode::Incremental { base: _, increment } => {
                 let remaining = self.remaining - 0.02;
-                remaining.min((remaining + increment) / 30.0)
+                let soft = remaining.min(remaining / 20.0 + increment / 2.0);
+                let hard = remaining / 3.0;
+                (soft, hard)
             }
             TimeMode::Classical { base: _, mps } => {
                 let remaining = self.remaining - 0.02;
@@ -55,7 +60,8 @@ impl TimeControl {
                     movesleft += mps;
                 }
 
-                remaining / (movesleft as f32)
+                let remaining = remaining / (movesleft as f32);
+                (remaining, remaining)
             }
         }
     }

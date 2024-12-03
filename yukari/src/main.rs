@@ -94,8 +94,11 @@ impl Yukari {
     /// Real search, falls back to dumb search in extreme time constraints
     pub fn search(&mut self, best_pv: &mut ArrayVec<[Move; 64]>, tt: &mut [TtEntry], human_output: bool) {
         let start = Instant::now();
-        let stop_after = start + Duration::from_secs_f32(self.tc.search_time());
-        let mut s = Search::new(start, Some(stop_after), &self.zobrist, tt, &mut self.corrhist, &self.params, human_output);
+        let (soft_limit, hard_limit) = self.tc.search_time();
+        println!("# soft limit: {:03}s, hard limit: {:03}s", soft_limit, hard_limit);
+        let soft_limit = start + Duration::from_secs_f32(soft_limit);
+        let hard_limit = start + Duration::from_secs_f32(hard_limit);
+        let mut s = Search::new(start, Some(hard_limit), &self.zobrist, tt, &mut self.corrhist, &self.params, human_output);
         // clone another to use inside the loop
         // Use a seperate backing data to record the current move set
         let mut depth = 1;
@@ -105,7 +108,7 @@ impl Yukari {
             // FIXME: We want to search one depth without time controls
             let score = s.search_root(&self.board, depth, &mut pv, &mut self.keystack);
             // If we have bailed out stop the loop
-            if Instant::now() >= stop_after {
+            if Instant::now() >= hard_limit {
                 break;
             }
             // If we have a pv that's not just empty from bailing out use that as our best moves
@@ -119,6 +122,9 @@ impl Yukari {
                     print!("{m} ");
                 }
                 println!();
+            }
+            if Instant::now() >= soft_limit {
+                break;
             }
             depth += 1;
         }
