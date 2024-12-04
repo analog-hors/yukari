@@ -1,3 +1,5 @@
+use std::simd::{cmp::SimdOrd, i16x64, i32x64, num::SimdInt};
+
 use crate::{Colour, Piece, Square};
 
 const HIDDEN_SIZE: usize = 128;
@@ -5,14 +7,7 @@ const SCALE: i32 = 400;
 const QA: i16 = 255;
 const QB: i16 = 64;
 
-static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../../../yukari_3e6c0af8.bin")) };
-
-#[inline]
-/// Clipped `ReLU` - Activation Function.
-/// Note that this takes the i16s in the accumulator to i32s.
-fn crelu(x: i16) -> i32 {
-    i32::from(x).clamp(0, i32::from(QA))
-}
+static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../../../yukari_679f0eb4.bin")) };
 
 /// This is the quantised format that bullet outputs.
 #[repr(C)]
@@ -34,25 +29,33 @@ impl Network {
     /// calculated hidden layer (done efficiently during makemoves).
     pub fn evaluate(&self, us: &Accumulator, them: &Accumulator) -> i32 {
         // Initialise output with bias.
-        let mut output = i32::from(self.output_bias);
+        let mut output = i32x64::splat(0); 
+        let min = i16x64::splat(0);
+        let max = i16x64::splat(QA);
 
         // Side-To-Move Accumulator -> Output.
-        for (&input, &weight) in us.vals.iter().zip(&self.output_weights[0].vals) {
-            output += crelu(input) * i32::from(weight);
+        for (input, weight) in us.vals.array_chunks::<64>().zip(self.output_weights[0].vals.array_chunks::<64>()) {
+            // Squared Clipped `ReLU` - Activation Function.
+            // Note that this takes the i16s in the accumulator to i32s.
+            let input = i16x64::from_array(*input).simd_clamp(min, max);
+            let weight = input * i16x64::from_array(*weight);
+            output += input.cast::<i32>() * weight.cast::<i32>();
         }
 
         // Not-Side-To-Move Accumulator -> Output.
-        for (&input, &weight) in them.vals.iter().zip(&self.output_weights[1].vals) {
-            output += crelu(input) * i32::from(weight);
+        for (input, weight) in them.vals.array_chunks::<64>().zip(self.output_weights[1].vals.array_chunks::<64>()) {
+            let input = i16x64::from_array(*input).simd_clamp(min, max);
+            let weight = input * i16x64::from_array(*weight);
+            output += input.cast::<i32>() * weight.cast::<i32>();
         }
+
+        let mut output = (output.reduce_sum() / i32::from(QA)) + i32::from(self.output_bias);
 
         // Apply eval scale.
         output *= SCALE;
 
         // Remove quantisation.
-        output /= i32::from(QA) * i32::from(QB);
-
-        output
+        output / (i32::from(QA) * i32::from(QB))
     }
 }
 
