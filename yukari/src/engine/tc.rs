@@ -101,8 +101,8 @@ impl FromStr for TimeMode {
         match cmd {
             "st" => {
                 // Parse out seconds per move
-                let secs = u32::from_str(args[0]).map_err(|_| ())?;
-                Ok(Self::MoveTime(secs * 1000))
+                let secs = f32::from_str(args[0]).map_err(|_| ())?;
+                Ok(Self::MoveTime((secs * 1000.0) as u32))
             }
             "level" => {
                 // Figure out if the mode is incremental or classical
