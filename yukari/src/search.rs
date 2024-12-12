@@ -259,9 +259,12 @@ impl<'a> Search<'a> {
             return self.eval_with_corrhist(board, board.eval(board.side()));
         }
 
+        let mut root_reduction = 0;
+
         // Check extension
         if board.in_check() {
             depth += 1;
+            root_reduction += -1;
         }
 
         if depth <= 0 {
@@ -275,6 +278,10 @@ impl<'a> Search<'a> {
             if lower_bound == upper_bound - 1 {
                 return score;
             }
+        } else if lower_bound != upper_bound - 1 && tt_move.is_none() && depth >= 3 {
+            // internal iterative reduction
+            depth -= 1;
+            root_reduction += 1;
         }
 
         let eval_int = self.eval_with_corrhist(board, board.eval(board.side()));
@@ -390,7 +397,7 @@ impl<'a> Search<'a> {
                             "stat01: {} {} {} {} {} {}",
                             now.duration_since(self.start).as_millis() / 10,
                             self.nodes() + self.qnodes(),
-                            depth,
+                            depth + root_reduction,
                             moves.len() - i,
                             moves.len(),
                             m
@@ -473,12 +480,11 @@ impl<'a> Search<'a> {
                     let verbose = now >= self.start + Duration::from_secs(2);
                     if verbose {
                         let now = now.duration_since(self.start);
-                        let unextended_depth = if board.in_check() { depth - 1 } else { depth };
                         if self.human_output {
                             let progress = progress.as_ref().unwrap();
-                            progress.println(format!("{:>2} {:>+6.2} {:>8.3} {:>9}\t{}", unextended_depth, ((best_score as f32) / 100.0), now.as_secs_f32(), self.nodes() + self.qnodes(), board.pv_to_san(pv, self.zobrist)));
+                            progress.println(format!("{:>2} {:>+6.2} {:>8.3} {:>9}\t{}", depth + root_reduction, ((best_score as f32) / 100.0), now.as_secs_f32(), self.nodes() + self.qnodes(), board.pv_to_san(pv, self.zobrist)));
                         } else {
-                            print!("{} {} {} {} ", depth, score, now.as_millis() / 10, self.nodes() + self.qnodes());
+                            print!("{} {} {} {} ", depth + root_reduction, score, now.as_millis() / 10, self.nodes() + self.qnodes());
                             for m in &*pv {
                                 print!("{m} ");
                             }
