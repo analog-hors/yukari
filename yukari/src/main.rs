@@ -108,12 +108,44 @@ impl Yukari {
         // clone another to use inside the loop
         // Use a seperate backing data to record the current move set
         let mut depth = 1;
+        let mut score = 0;
         let mut pv = ArrayVec::new();
         let max_depth = self.max_depth.unwrap_or(63);
         while depth <= max_depth {
-            pv.set_len(0);
-            // FIXME: We want to search one depth without time controls
-            let score = s.search_root(&self.board, depth, &mut pv, &mut self.keystack);
+            let mut lower_bound = 50;
+            let mut upper_bound = 50;
+            loop {
+                pv.set_len(0);
+                // FIXME: We want to search one depth without time controls
+                let lower_window = score - lower_bound;
+                let upper_window = score + upper_bound;
+                score = s.search_root(&self.board, depth, lower_window, upper_window, &mut pv, &mut self.keystack);
+                // If we have bailed out stop the loop
+                if Instant::now() >= hard_limit {
+                    break;
+                }
+                if score <= lower_window {
+                    lower_bound *= 2;
+                    if human_output {
+                        let now = Instant::now().duration_since(start);
+                        println!("{:>2} {:>+6.2} {:>8.3} {:>9}\t{}", depth.to_string().red(), ((score as f32) / 100.0), now.as_secs_f32(), s.nodes() + s.qnodes(), self.board.pv_to_san(&pv, &self.zobrist));
+                    } else {
+                        println!("--");
+                    }
+                    continue;
+                }
+                if score >= upper_window {
+                    upper_bound *= 2;
+                    if human_output {
+                        let now = Instant::now().duration_since(start);
+                        println!("{:>2} {:>+6.2} {:>8.3} {:>9}\t{}", depth.to_string().green(), ((score as f32) / 100.0), now.as_secs_f32(), s.nodes() + s.qnodes(), self.board.pv_to_san(&pv, &self.zobrist));
+                    } else {
+                        println!("++");
+                    }
+                    continue;
+                }
+                break;
+            }
             // If we have bailed out stop the loop
             if Instant::now() >= hard_limit {
                 break;
@@ -203,7 +235,25 @@ impl Yukari {
             let mut s = Search::new(start, None, &zobrist, tt, &mut self.corrhist, &self.params, true);
             let mut keystack = Vec::new();
             let mut pv = ArrayVec::new();
-            let score = s.search_root(&board, 8, &mut pv, &mut keystack);
+            let mut score = 0;
+            let mut lower_bound = 50;
+            let mut upper_bound = 50;
+            loop {
+                pv.set_len(0);
+                let lower_window = score - lower_bound;
+                let upper_window = score + upper_bound;
+                score = s.search_root(&board, 8, lower_window, upper_window, &mut pv, &mut keystack);
+                let now = Instant::now().duration_since(start);
+                if score <= lower_window {
+                    lower_bound *= 2;
+                    continue;
+                }
+                if score >= upper_window {
+                    upper_bound *= 2;
+                    continue;
+                }
+                break;
+            }
             let now = Instant::now().duration_since(start);
             println!("10 {score:.2} {} {} {}", now.as_millis() / 10, s.nodes() + s.qnodes(), board.pv_to_san(&pv, &zobrist));
             nodes += s.nodes() + s.qnodes();
@@ -238,7 +288,7 @@ impl Yukari {
                     let mut s = Search::new(start, None, &self.zobrist, &tt, &mut corrhist, &self.params, true);
                     let mut keystack = Vec::new();
                     let mut pv = ArrayVec::new();
-                    let score = s.search_root(&board, 6, &mut pv, &mut keystack);
+                    let score = s.search_root(&board, 6, -100_000, 100_000, &mut pv, &mut keystack);
                     let now = Instant::now().duration_since(start);
                     print!("6 {score:.2} {} {} ", now.as_millis() / 10, s.nodes() + s.qnodes());
                     for m in pv {

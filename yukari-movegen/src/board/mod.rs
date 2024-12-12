@@ -936,7 +936,7 @@ impl Board {
         }
 
         // Moving piece
-        let piece = self.piece_from_square(m.from).unwrap();
+        let piece = self.piece_from_square(m.from).unwrap_or_else(|| panic!("{m} has no origin piece on board\n{self}"));
         let piece_char = match piece {
             Piece::Pawn => "",
             Piece::Knight => "N",
@@ -948,25 +948,31 @@ impl Board {
         write!(san, "{piece_char}").unwrap();
 
         // Disambiguation
-        let attacks = self.data.attacks_to(m.dest, self.side) & Bitlist::mask_from_colour(self.side) & !Bitlist::from_piece(self.data.piece_index(m.from).unwrap());
-        let rank = Rank::from(m.from);
-        let file = File::from(m.from);
+        let mut moves = ArrayVec::new();
+        self.generate(&mut moves);
+
+        let mut ambiguities = Vec::new();
+        for mv in moves {
+            if mv.dest == m.dest && self.piece_from_square(mv.from) == self.piece_from_square(m.from) && mv.from != m.from {
+                ambiguities.push(mv);
+            }
+        }
+
+        let must_disambiguate = !ambiguities.is_empty();
         let mut piece_on_same_rank = false;
         let mut piece_on_same_file = false;
-        for attacker in attacks {
-            let attacker_square = self.data.square_of_piece(attacker);
-            let attacker_type = self.piece_from_bit(attacker);
-            if attacker_type != piece {
-                continue;
-            }
-            let attacker_rank = Rank::from(attacker_square);
-            let attacker_file = File::from(attacker_square);
+
+        let rank = Rank::from(m.from);
+        let file = File::from(m.from);
+        for ambiguity in ambiguities {
+            let attacker_rank = Rank::from(ambiguity.from);
+            let attacker_file = File::from(ambiguity.from);
             piece_on_same_rank |= attacker_rank == rank;
             piece_on_same_file |= attacker_file == file;
         }
 
-        if piece != Piece::Pawn {
-            if piece_on_same_rank {
+        if piece != Piece::Pawn && must_disambiguate {
+            if piece_on_same_rank || !piece_on_same_file {
                 write!(san, "{file}").unwrap();
             }
             if piece_on_same_file {

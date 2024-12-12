@@ -518,8 +518,8 @@ impl<'a> Search<'a> {
         best_score
     }
 
-    pub fn search_root(&mut self, board: &Board, depth: i32, pv: &mut ArrayVec<[Move; 64]>, keystack: &mut Vec<u64>) -> i32 {
-        self.search(board, depth, -100_000, 100_000, pv, 0, keystack)
+    pub fn search_root(&mut self, board: &Board, depth: i32, lower_bound: i32, upper_bound: i32, pv: &mut ArrayVec<[Move; 64]>, keystack: &mut Vec<u64>) -> i32 {
+        self.search(board, depth, lower_bound, upper_bound, pv, 0, keystack)
     }
 
     #[must_use]
