@@ -242,8 +242,7 @@ impl Yukari {
                 pv.set_len(0);
                 let lower_window = score - lower_bound;
                 let upper_window = score + upper_bound;
-                score = s.search_root(&board, 8, lower_window, upper_window, &mut pv, &mut keystack);
-                let now = Instant::now().duration_since(start);
+                score = s.search_root(&board, 11, lower_window, upper_window, &mut pv, &mut keystack);
                 if score <= lower_window {
                     lower_bound *= 2;
                     continue;
@@ -255,7 +254,7 @@ impl Yukari {
                 break;
             }
             let now = Instant::now().duration_since(start);
-            println!("10 {score:.2} {} {} {}", now.as_millis() / 10, s.nodes() + s.qnodes(), board.pv_to_san(&pv, &zobrist));
+            println!("11 {score:.2} {} {} {}", now.as_millis() / 10, s.nodes() + s.qnodes(), board.pv_to_san(&pv, &zobrist));
             nodes += s.nodes() + s.qnodes();
         }
         let now = Instant::now().duration_since(start);
