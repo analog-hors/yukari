@@ -3,38 +3,81 @@ use std::simd::{cmp::SimdOrd, i16x64, i32x64, num::SimdInt};
 use crate::{Colour, Piece, Square};
 
 const HIDDEN_SIZE: usize = 256;
+const OUTPUT_BUCKETS: usize = 8;
+const DIVISOR: usize = 32_usize.div_ceil(OUTPUT_BUCKETS);
 const SCALE: i32 = 400;
 const QA: i16 = 255;
 const QB: i16 = 64;
 
-static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../../../yukari_d9652978.bin")) };
-
 /// This is the quantised format that bullet outputs.
+#[repr(C)]
+struct RawNetwork {
+    /// Column-Major `HIDDEN_SIZE x 768` matrix.
+    feature_weights: [Accumulator; 768],
+    /// Vector with dimension `HIDDEN_SIZE`.
+    feature_bias: Accumulator,
+    /// Column-Major `OUTPUT_BUCKETS x (2 * HIDDEN_SIZE)` matrix.
+    output_weights: [[i16; OUTPUT_BUCKETS]; 2 * HIDDEN_SIZE],
+    /// Scalar output biases.
+    output_bias: [i16; OUTPUT_BUCKETS],
+}
+
+impl RawNetwork {
+    #[allow(clippy::large_stack_frames)]
+    const fn into_network(self) -> Network {
+        let mut output_weights = [[self.feature_bias; 2]; OUTPUT_BUCKETS];
+
+        // const for requires const Iterator which requires const traits...
+        let mut bucket = 0;
+        while bucket < OUTPUT_BUCKETS {
+            let mut colour = 0;
+            while colour < 2 {
+                let mut i = 0;
+                while i < HIDDEN_SIZE {
+                    output_weights[bucket][colour].vals[i] = self.output_weights[HIDDEN_SIZE * colour + i][bucket];
+                    i += 1;
+                }
+                colour += 1;
+            }
+            bucket += 1;
+        }
+
+        Network {
+            feature_weights: self.feature_weights,
+            feature_bias: self.feature_bias,
+            output_weights,
+            output_bias: self.output_bias,
+        }
+    }
+}
+
+static NNUE: Network = unsafe { std::mem::transmute::<[u8; std::mem::size_of::<RawNetwork>()], RawNetwork>(*include_bytes!("../../../yukari_1717143a.bin")).into_network() };
+const _RAW_AND_PROCESSED_NETWORKS_ARE_SAME_SIZE: () = assert!(std::mem::size_of::<RawNetwork>() == std::mem::size_of::<Network>());
+
+/// This is the quantised format that yukari uses.
 #[repr(C)]
 pub struct Network {
     /// Column-Major `HIDDEN_SIZE x 768` matrix.
     feature_weights: [Accumulator; 768],
     /// Vector with dimension `HIDDEN_SIZE`.
     feature_bias: Accumulator,
-    /// Column-Major `1 x (2 * HIDDEN_SIZE)`
-    /// matrix, we use it like this to make the
-    /// code nicer in `Network::evaluate`.
-    output_weights: [Accumulator; 2],
-    /// Scalar output bias.
-    output_bias: i16,
+    /// Row-Major `OUTPUT_BUCKETS x (2 * HIDDEN_SIZE)` matrix.
+    output_weights: [[Accumulator; 2]; OUTPUT_BUCKETS],
+    /// Scalar output biases.
+    output_bias: [i16; OUTPUT_BUCKETS],
 }
 
 impl Network {
     /// Calculates the output of the network, starting from the already
     /// calculated hidden layer (done efficiently during makemoves).
-    pub fn evaluate(&self, us: &Accumulator, them: &Accumulator) -> i32 {
+    pub fn evaluate(&self, us: &Accumulator, them: &Accumulator, output_bucket: usize) -> i32 {
         // Initialise output with bias.
         let mut output = i32x64::splat(0); 
         let min = i16x64::splat(0);
         let max = i16x64::splat(QA);
 
         // Side-To-Move Accumulator -> Output.
-        for (input, weight) in us.vals.array_chunks::<64>().zip(self.output_weights[0].vals.array_chunks::<64>()) {
+        for (input, weight) in us.vals.array_chunks::<64>().zip(self.output_weights[output_bucket][0].vals.array_chunks::<64>()) {
             // Squared Clipped `ReLU` - Activation Function.
             // Note that this takes the i16s in the accumulator to i32s.
             let input = i16x64::from_array(*input).simd_clamp(min, max);
@@ -43,13 +86,13 @@ impl Network {
         }
 
         // Not-Side-To-Move Accumulator -> Output.
-        for (input, weight) in them.vals.array_chunks::<64>().zip(self.output_weights[1].vals.array_chunks::<64>()) {
+        for (input, weight) in them.vals.array_chunks::<64>().zip(self.output_weights[output_bucket][1].vals.array_chunks::<64>()) {
             let input = i16x64::from_array(*input).simd_clamp(min, max);
             let weight = input * i16x64::from_array(*weight);
             output += input.cast::<i32>() * weight.cast::<i32>();
         }
 
-        let mut output = (output.reduce_sum() / i32::from(QA)) + i32::from(self.output_bias);
+        let mut output = (output.reduce_sum() / i32::from(QA)) + i32::from(self.output_bias[output_bucket]);
 
         // Apply eval scale.
         output *= SCALE;
@@ -100,11 +143,12 @@ impl Eval {
         Self { white: Accumulator::new(&NNUE), black: Accumulator::new(&NNUE) }
     }
 
-    pub fn get(&self, colour: Colour) -> i32 {
+    pub fn get(&self, piece_count: usize, colour: Colour) -> i32 {
+        let output_bucket = (piece_count - 2) / DIVISOR;
         if colour == Colour::White {
-            NNUE.evaluate(&self.white, &self.black)
+            NNUE.evaluate(&self.white, &self.black, output_bucket)
         } else {
-            NNUE.evaluate(&self.black, &self.white)
+            NNUE.evaluate(&self.black, &self.white, output_bucket)
         }
     }
 
