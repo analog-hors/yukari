@@ -7,7 +7,7 @@ const SCALE: i32 = 400;
 const QA: i16 = 255;
 const QB: i16 = 64;
 
-static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../../../yukari_679f0eb4.bin")) };
+static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../../../yukari_86582212.bin")) };
 
 /// This is the quantised format that bullet outputs.
 #[repr(C)]
