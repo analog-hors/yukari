@@ -2,12 +2,12 @@ use std::simd::{cmp::SimdOrd, i16x64, i32x64, num::SimdInt};
 
 use crate::{Colour, Piece, Square};
 
-const HIDDEN_SIZE: usize = 128;
+const HIDDEN_SIZE: usize = 256;
 const SCALE: i32 = 400;
 const QA: i16 = 255;
 const QB: i16 = 64;
 
-static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../../../yukari_86582212.bin")) };
+static NNUE: Network = unsafe { std::mem::transmute(*include_bytes!("../../../yukari_d9652978.bin")) };
 
 /// This is the quantised format that bullet outputs.
 #[repr(C)]
