@@ -52,7 +52,7 @@ impl RawNetwork {
 }
 
 static NNUE: Network = unsafe {
-    std::mem::transmute::<[u8; std::mem::size_of::<RawNetwork>()], RawNetwork>(*include_bytes!("../../../yukari_1717143a.bin"))
+    std::mem::transmute::<[u8; std::mem::size_of::<RawNetwork>()], RawNetwork>(*include_bytes!("../../../yukari_a8895595.bin"))
         .into_network()
 };
 const _RAW_AND_PROCESSED_NETWORKS_ARE_SAME_SIZE: () = assert!(std::mem::size_of::<RawNetwork>() == std::mem::size_of::<Network>());
