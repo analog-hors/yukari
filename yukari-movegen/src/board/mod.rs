@@ -4,6 +4,7 @@ use std::{
     fmt::{Display, Write},
 };
 
+use colored::Colorize;
 use tinyvec::ArrayVec;
 pub use zobrist::Zobrist;
 
@@ -52,27 +53,26 @@ impl Display for Board {
         for i in 0_u8..64_u8 {
             let j = i ^ 56_u8;
 
+            let square_colour = |s: &str| if (j & 1) ^ ((j >> 3) & 1) == 0 { s.on_green() } else { s.on_white() };
+
             if let (Some(piece), Some(colour)) = (
                 self.data.piece_from_square(j.try_into().expect("square somehow out of bounds")),
                 self.data.colour_from_square(j.try_into().expect("square somehow out of bounds")),
             ) {
                 let c = match piece {
-                    Piece::Pawn => 'P',
-                    Piece::Knight => 'N',
-                    Piece::Bishop => 'B',
-                    Piece::Rook => 'R',
-                    Piece::Queen => 'Q',
-                    Piece::King => 'K',
+                    Piece::Pawn => '♙',
+                    Piece::Knight => '♘',
+                    Piece::Bishop => '♗',
+                    Piece::Rook => '♖',
+                    Piece::Queen => '♕',
+                    Piece::King => '♔',
                 };
 
-                let c = match colour {
-                    Colour::White => c.to_ascii_uppercase(),
-                    Colour::Black => c.to_ascii_lowercase(),
-                };
+                let c = if colour == Colour::White { c.to_string().bright_white() } else { c.to_string().black() };
 
-                write!(f, "{c} ")?;
+                write!(f, "{}", square_colour(&format!("{c} ")))?;
             } else {
-                write!(f, ". ")?;
+                write!(f, "{}", square_colour("  "))?;
             }
 
             if j & 7 == 7 {
@@ -119,8 +119,8 @@ impl Board {
 
     #[allow(clippy::missing_panics_doc)]
     #[must_use]
-    pub fn startpos(zobrist: &Zobrist) -> Self {
-        Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", zobrist).unwrap()
+    pub fn startpos() -> Self {
+        Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
     }
 
     /// Check if this board is illegal by seeing if the enemy king is attacked by friendly pieces.
@@ -147,10 +147,10 @@ impl Board {
     /// # Panics
     /// Panics if `fen` is not ASCII.
     #[must_use]
-    pub fn from_fen(fen: &str, zobrist: &Zobrist) -> Option<Self> {
+    pub fn from_fen(fen: &str) -> Option<Self> {
         let fen = CString::new(fen).expect("FEN is not ASCII");
         let fen = fen.as_bytes();
-        Self::from_fen_bytes(fen, zobrist)
+        Self::from_fen_bytes(fen)
     }
 
     /// Parse a position in Forsyth-Edwards Notation into a board.
@@ -158,7 +158,7 @@ impl Board {
     /// # Panics
     /// Panics when invalid FEN is input.
     #[must_use]
-    pub fn from_fen_bytes(fen: &[u8], zobrist: &Zobrist) -> Option<Self> {
+    pub fn from_fen_bytes(fen: &[u8]) -> Option<Self> {
         let mut b = Self::new();
 
         let mut idx = 0_usize;
@@ -189,7 +189,7 @@ impl Board {
 
                     let square = Square::from_rank_file(rank.try_into().unwrap(), file.try_into().unwrap());
 
-                    b.data.add_piece(piece, colour, square, false, zobrist);
+                    b.data.add_piece(piece, colour, square, false);
 
                     file += 1;
                 }
@@ -216,25 +216,25 @@ impl Board {
         } else {
             if c == b'K' {
                 b.castle.0 = true;
-                b.data.add_castling(0, zobrist);
+                b.data.add_castling(0);
                 idx += 1;
                 c = fen[idx];
             }
             if c == b'Q' {
                 b.castle.1 = true;
-                b.data.add_castling(1, zobrist);
+                b.data.add_castling(1);
                 idx += 1;
                 c = fen[idx];
             }
             if c == b'k' {
                 b.castle.2 = true;
-                b.data.add_castling(2, zobrist);
+                b.data.add_castling(2);
                 idx += 1;
                 c = fen[idx];
             }
             if c == b'q' {
                 b.castle.3 = true;
-                b.data.add_castling(3, zobrist);
+                b.data.add_castling(3);
                 idx += 1;
             }
         }
@@ -259,8 +259,8 @@ impl Board {
         Some(b)
     }
 
-    fn set_ep(&mut self, zobrist: &Zobrist, ep: Option<Square>) {
-        self.data.set_ep(self.ep, ep, zobrist);
+    fn set_ep(&mut self, ep: Option<Square>) {
+        self.data.set_ep(self.ep, ep);
         self.ep = ep;
     }
 
@@ -271,13 +271,13 @@ impl Board {
     #[inline]
     #[must_use]
     #[allow(clippy::too_many_lines)]
-    pub fn make(&self, m: Move, zobrist: &Zobrist) -> Self {
+    pub fn make(&self, m: Move) -> Self {
         let mut b = self.clone();
         match m.kind {
             MoveType::Promotion | MoveType::Normal | MoveType::DoublePush => {}
             MoveType::Capture | MoveType::CapturePromotion => {
-                let piece_index = b.data.piece_index(m.dest).expect("attempted to capture an empty square");
-                b.data.remove_piece(piece_index, true, zobrist);
+                let piece_index = b.data.piece_index(m.dest).unwrap_or_else(|| panic!("move {m} attempts to capture an empty square"));
+                b.data.remove_piece(piece_index, true);
             }
             MoveType::Castle => {
                 let (rook_from, rook_to) = if m.dest > m.from {
@@ -285,27 +285,27 @@ impl Board {
                 } else {
                     (m.dest.west().unwrap().west().unwrap(), m.dest.east().unwrap())
                 };
-                b.data.move_piece(rook_from, rook_to, zobrist);
+                b.data.move_piece(rook_from, rook_to);
             }
             MoveType::EnPassant => {
                 let target_square = b.ep.unwrap().relative_south(b.side).unwrap();
                 let target_piece = b.data.piece_index(target_square).unwrap();
-                b.data.remove_piece(target_piece, true, zobrist);
+                b.data.remove_piece(target_piece, true);
             }
         }
 
-        b.data.move_piece(m.from, m.dest, zobrist);
+        b.data.move_piece(m.from, m.dest);
 
         if matches!(m.kind, MoveType::Promotion | MoveType::CapturePromotion) {
             let piece_index = b.data.piece_index(m.dest).unwrap();
-            b.data.remove_piece(piece_index, true, zobrist);
-            b.data.add_piece(m.prom.unwrap(), b.side, m.dest, true, zobrist);
+            b.data.remove_piece(piece_index, true);
+            b.data.add_piece(m.prom.unwrap(), b.side, m.dest, true);
         }
 
         if matches!(m.kind, MoveType::DoublePush) {
-            b.set_ep(zobrist, m.from.relative_north(b.side));
+            b.set_ep(m.from.relative_north(b.side));
         } else {
-            b.set_ep(zobrist, None);
+            b.set_ep(None);
         }
 
         let a1 = Square::from_rank_file(Rank::One, File::A);
@@ -318,47 +318,47 @@ impl Board {
         if m.from == e1 {
             if b.castle.0 {
                 b.castle.0 = false;
-                b.data.remove_castling(0, zobrist);
+                b.data.remove_castling(0);
             }
             if b.castle.1 {
                 b.castle.1 = false;
-                b.data.remove_castling(1, zobrist);
+                b.data.remove_castling(1);
             }
         }
 
         if m.from == e8 {
             if b.castle.2 {
                 b.castle.2 = false;
-                b.data.remove_castling(2, zobrist);
+                b.data.remove_castling(2);
             }
             if b.castle.3 {
                 b.castle.3 = false;
-                b.data.remove_castling(3, zobrist);
+                b.data.remove_castling(3);
             }
         }
 
         if (m.from == h1 || m.dest == h1) && b.castle.0 {
             b.castle.0 = false;
-            b.data.remove_castling(0, zobrist);
+            b.data.remove_castling(0);
         }
 
         if (m.from == a1 || m.dest == a1) && b.castle.1 {
             b.castle.1 = false;
-            b.data.remove_castling(1, zobrist);
+            b.data.remove_castling(1);
         }
 
         if (m.from == h8 || m.dest == h8) && b.castle.2 {
             b.castle.2 = false;
-            b.data.remove_castling(2, zobrist);
+            b.data.remove_castling(2);
         }
 
         if (m.from == a8 || m.dest == a8) && b.castle.3 {
             b.castle.3 = false;
-            b.data.remove_castling(3, zobrist);
+            b.data.remove_castling(3);
         }
 
         b.side = !b.side;
-        b.data.toggle_side(zobrist);
+        b.data.toggle_side();
         b
     }
 
@@ -896,8 +896,8 @@ impl Board {
     }
 
     #[must_use]
-    pub fn hash_pawns(&self, zobrist: &Zobrist) -> u64 {
-        self.data.hash_pawns(zobrist)
+    pub fn hash_pawns(&self) -> u64 {
+        self.data.hash_pawns()
     }
 
     #[must_use]
@@ -911,18 +911,18 @@ impl Board {
     }
 
     #[must_use]
-    pub fn make_null(&self, zobrist: &Zobrist) -> Self {
+    pub fn make_null(&self) -> Self {
         let mut board = self.clone();
         board.side = !board.side;
-        board.set_ep(zobrist, None);
-        board.data.toggle_side(zobrist);
+        board.set_ep(None);
+        board.data.toggle_side();
         board
     }
 
     /// # Panics
     /// Panics when a nonsense move is encountered.
     #[must_use]
-    pub fn to_san(&self, m: Move, zobrist: &Zobrist) -> String {
+    pub fn to_san(&self, m: Move) -> String {
         let mut san = String::new();
 
         // Special case: castling
@@ -939,11 +939,11 @@ impl Board {
         let piece = self.piece_from_square(m.from).unwrap_or_else(|| panic!("{m} has no origin piece on board\n{self}"));
         let piece_char = match piece {
             Piece::Pawn => "",
-            Piece::Knight => "N",
-            Piece::Bishop => "B",
-            Piece::Rook => "R",
-            Piece::Queen => "Q",
-            Piece::King => "K",
+            Piece::Knight => "♘ ",
+            Piece::Bishop => "♗ ",
+            Piece::Rook => "♖ ",
+            Piece::Queen => "♕ ",
+            Piece::King => "♔ ",
         };
         write!(san, "{piece_char}").unwrap();
 
@@ -996,18 +996,18 @@ impl Board {
         // Promotion?
         if matches!(m.kind, MoveType::Promotion | MoveType::CapturePromotion) {
             let piece_char = match m.prom.unwrap() {
-                Piece::Pawn => "",
-                Piece::Knight => "N",
-                Piece::Bishop => "B",
-                Piece::Rook => "R",
-                Piece::Queen => "Q",
-                Piece::King => "K",
+                Piece::Pawn => '♙',
+                Piece::Knight => '♘',
+                Piece::Bishop => '♗',
+                Piece::Rook => '♖',
+                Piece::Queen => '♕',
+                Piece::King => '♔',
             };
             write!(san, "={piece_char}").unwrap();
         }
 
         // Check?
-        let child = self.make(m, zobrist);
+        let child = self.make(m);
         if child.in_check() {
             // Checkmate?
             let mut moves = ArrayVec::new();
@@ -1023,12 +1023,17 @@ impl Board {
     }
 
     #[must_use]
-    pub fn pv_to_san(&self, pv: &[Move], zobrist: &Zobrist) -> String {
+    pub fn pv_to_san(&self, pv: &[Move]) -> String {
         let mut s = String::new();
         let mut board = self.clone();
         for &m in pv {
-            write!(s, "{} ", board.to_san(m, zobrist)).unwrap();
-            board = board.make(m, zobrist);
+            let san = board.to_san(m);
+            if board.side() == Colour::White {
+                write!(s, "{} ", san.bright_white()).unwrap();
+            } else {
+                write!(s, "{} ", san.bright_black()).unwrap();
+            }
+            board = board.make(m);
         }
         s
     }

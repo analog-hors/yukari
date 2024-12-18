@@ -5,7 +5,7 @@ use std::{
 
 use rayon::prelude::*;
 use tinyvec::ArrayVec;
-use yukari_movegen::{Board, Move, Zobrist};
+use yukari_movegen::{Board, Move};
 
 #[derive(Default)]
 #[repr(align(16))]
@@ -38,7 +38,7 @@ pub fn allocate_perft_tt(megabytes: usize) -> Vec<PerftEntry> {
 /// Count the number of legal chess positions after N moves.
 #[inline]
 #[must_use]
-pub fn perft_with_hash(board: &Board, zobrist: &Zobrist, depth: u32, tt: &[PerftEntry]) -> u64 {
+pub fn perft_with_hash(board: &Board, depth: u32, tt: &[PerftEntry]) -> u64 {
     if depth == 0 {
         1
     } else if depth == 1 {
@@ -68,8 +68,8 @@ pub fn perft_with_hash(board: &Board, zobrist: &Zobrist, depth: u32, tt: &[Perft
 
         let mut count = 0;
         for m in moves {
-            let board = board.make(m, zobrist);
-            count += perft_with_hash(&board, zobrist, depth - 1, tt);
+            let board = board.make(m);
+            count += perft_with_hash(&board, depth - 1, tt);
         }
 
         {
@@ -86,7 +86,7 @@ pub fn perft_with_hash(board: &Board, zobrist: &Zobrist, depth: u32, tt: &[Perft
 }
 
 #[must_use]
-pub fn divide(board: &Board, zobrist: &Zobrist, depth: u32, tt: &[PerftEntry]) -> u64 {
+pub fn divide(board: &Board, depth: u32, tt: &[PerftEntry]) -> u64 {
     if depth == 0 {
         1
     } else {
@@ -98,8 +98,8 @@ pub fn divide(board: &Board, zobrist: &Zobrist, depth: u32, tt: &[PerftEntry]) -
         moves
             .par_iter()
             .map(|m| {
-                let board = board.make(*m, zobrist);
-                let nodes = perft_with_hash(&board, zobrist, depth - 1, tt);
+                let board = board.make(*m);
+                let nodes = perft_with_hash(&board, depth - 1, tt);
                 println!("{} {}", m, nodes);
                 nodes
             })
@@ -114,7 +114,6 @@ fn main() {
         .expect("Please provide a FEN string wrapped in quotes or the string 'bench' as argument")
         .parse::<u32>()
         .expect("Please provide a FEN string wrapped in quotes or the string 'bench' as argument");
-    let zobrist = Zobrist::new();
     let board = Board::from_fen(
         if fen == "startpos" {
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -122,14 +121,13 @@ fn main() {
             "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
         } else {
             &fen
-        },
-        &zobrist,
+        }
     )
     .unwrap();
     //let nodes = divide(&startpos, &zobrist, depth);
     let tt = allocate_perft_tt(256);
     let start = Instant::now();
-    let nodes = divide(&board, &zobrist, depth, &tt);
+    let nodes = divide(&board, depth, &tt);
     println!("Perft {}: {}", depth, nodes);
     println!("time: {:.3}s", Instant::now().duration_since(start).as_secs_f32());
 }

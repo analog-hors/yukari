@@ -1,20 +1,14 @@
 use std::{
-    fs::File,
-    io::{self, BufRead, Write},
+    io::{self},
     str::FromStr,
-    sync::Mutex,
     time::{Duration, Instant},
 };
 
-use colored::Colorize;
-use rayon::prelude::*;
 use tinyvec::ArrayVec;
 use yukari::{
-    self, allocate_tt,
-    engine::{TimeControl, TimeMode},
-    is_repetition_draw, Search, SearchParams, TtEntry,
+    self, allocate_tt, engine::{TimeControl, TimeMode}, is_repetition_draw, output::{self, Output}, Search, SearchParams, TtEntry
 };
-use yukari_movegen::{Board, Move, Piece, Square, Zobrist};
+use yukari_movegen::{Board, Move, Piece, Square};
 
 #[derive(Clone, Copy, Debug)]
 enum Mode {
@@ -34,7 +28,6 @@ pub struct Yukari {
     tc: TimeControl,
     max_depth: Option<i32>,
     mode: Mode,
-    zobrist: Zobrist,
     keystack: Vec<u64>,
     corrhist: [[i32; 16384]; 2],
     params: SearchParams,
@@ -44,16 +37,14 @@ impl Yukari {
     /// Create a new copy of the engine, starting with the typical position and unused time controls
     #[must_use]
     pub fn new() -> Self {
-        let zobrist = Zobrist::new();
         Self {
             // Using startpos fixes knights
-            board: Board::startpos(&zobrist),
+            board: Board::startpos(),
             // Time controls are uninitialized
-            tc: TimeControl::new(TimeMode::MoveTime(0)),
+            tc: TimeControl::new(TimeMode::MoveTime(5000)),
             max_depth: None,
             // Normal move making is on by default
             mode: Mode::Normal,
-            zobrist,
             keystack: Vec::new(),
             corrhist: [[0; 16384]; 2],
             params: SearchParams::default(),
@@ -64,7 +55,7 @@ impl Yukari {
     /// # Panics
     /// Panics when invalid FEN is input.
     pub fn set_board(&mut self, s: &str) {
-        self.board = Board::from_fen(s, &self.zobrist).unwrap();
+        self.board = Board::from_fen(s).unwrap();
         self.keystack.clear();
     }
 
@@ -104,7 +95,7 @@ impl Yukari {
         println!("# soft limit: {:03}s, hard limit: {:03}s", soft_limit, hard_limit);
         let soft_limit = start + Duration::from_secs_f32(soft_limit);
         let hard_limit = start + Duration::from_secs_f32(hard_limit);
-        let mut s = Search::new(start, Some(hard_limit), &self.zobrist, tt, &mut self.corrhist, &self.params, human_output);
+        let mut s = Search::new(start, Some(hard_limit), tt, &mut self.corrhist, &self.params);
         // clone another to use inside the loop
         // Use a seperate backing data to record the current move set
         let mut depth = 1;
@@ -116,34 +107,26 @@ impl Yukari {
             let mut upper_bound = 50;
             loop {
                 pv.set_len(0);
-                // FIXME: We want to search one depth without time controls
                 let lower_window = score - lower_bound;
                 let upper_window = score + upper_bound;
-                score = s.search_root(&self.board, depth, lower_window, upper_window, &mut pv, &mut self.keystack);
+                let output: &mut dyn output::Output = if human_output { &mut output::Human::start(&self.board) } else { &mut output::Xboard::start(&self.board) };
+                score = s.search_root(&self.board, depth, lower_window, upper_window, output, &mut pv, &mut self.keystack);
                 // If we have bailed out stop the loop
                 if Instant::now() >= hard_limit {
+                    output.abort();
                     break;
                 }
                 if score <= lower_window {
                     lower_bound *= 2;
-                    if human_output {
-                        let now = Instant::now().duration_since(start);
-                        println!("{:>2} {:>+6.2} {:>8.3} {:>9}\t{}", depth.to_string().red(), ((score as f32) / 100.0), now.as_secs_f32(), s.nodes() + s.qnodes(), self.board.pv_to_san(&pv, &self.zobrist));
-                    } else {
-                        println!("--");
-                    }
+                    output.complete(&self.board, depth, score, Instant::now().duration_since(start), s.nodes() + s.qnodes(), &pv, false, false);
                     continue;
                 }
                 if score >= upper_window {
                     upper_bound *= 2;
-                    if human_output {
-                        let now = Instant::now().duration_since(start);
-                        println!("{:>2} {:>+6.2} {:>8.3} {:>9}\t{}", depth.to_string().green(), ((score as f32) / 100.0), now.as_secs_f32(), s.nodes() + s.qnodes(), self.board.pv_to_san(&pv, &self.zobrist));
-                    } else {
-                        println!("++");
-                    }
+                    output.complete(&self.board, depth, score, Instant::now().duration_since(start), s.nodes() + s.qnodes(), &pv, false, true);
                     continue;
                 }
+                output.complete(&self.board, depth, score, Instant::now().duration_since(start), s.nodes() + s.qnodes(), &pv, true, false);
                 break;
             }
             // If we have bailed out stop the loop
@@ -152,16 +135,7 @@ impl Yukari {
             }
             // If we have a pv that's not just empty from bailing out use that as our best moves
             best_pv.clone_from(&pv);
-            let now = Instant::now().duration_since(start);
-            if human_output {
-                println!("{:>2} {:>+6.2} {:>8.3} {:>9}\t{}", depth.to_string().bold(), ((score as f32) / 100.0), now.as_secs_f32(), s.nodes() + s.qnodes(), self.board.pv_to_san(&pv, &self.zobrist));
-            } else {
-                print!("{} {} {} {} ", depth, score, now.as_millis() / 10, s.nodes() + s.qnodes());
-                for m in &pv {
-                    print!("{m} ");
-                }
-                println!();
-            }
+
             if Instant::now() >= soft_limit {
                 break;
             }
@@ -227,12 +201,11 @@ impl Yukari {
         ];
 
         let mut nodes = 0;
-        let zobrist = Zobrist::new();
         let start = Instant::now();
         for fen in fens {
-            let board = Board::from_fen(fen, &zobrist).unwrap();
+            let board = Board::from_fen(fen).unwrap();
             let start = Instant::now();
-            let mut s = Search::new(start, None, &zobrist, tt, &mut self.corrhist, &self.params, true);
+            let mut s = Search::new(start, None, tt, &mut self.corrhist, &self.params);
             let mut keystack = Vec::new();
             let mut pv = ArrayVec::new();
             let mut score = 0;
@@ -242,73 +215,26 @@ impl Yukari {
                 pv.set_len(0);
                 let lower_window = score - lower_bound;
                 let upper_window = score + upper_bound;
-                score = s.search_root(&board, 11, lower_window, upper_window, &mut pv, &mut keystack);
+                let mut output = output::Human::start(&self.board);
+                score = s.search_root(&board, 11, lower_window, upper_window, &mut output, &mut pv, &mut keystack);
                 if score <= lower_window {
                     lower_bound *= 2;
+                    output.complete(&board, 11, score, Instant::now().duration_since(start), s.nodes() + s.qnodes(), &pv, false, false);
                     continue;
                 }
                 if score >= upper_window {
                     upper_bound *= 2;
+                    output.complete(&board, 11, score, Instant::now().duration_since(start), s.nodes() + s.qnodes(), &pv, false, true);
                     continue;
                 }
+                output.complete(&board, 11, score, Instant::now().duration_since(start), s.nodes() + s.qnodes(), &pv, true, false);
                 break;
             }
-            let now = Instant::now().duration_since(start);
-            println!("11 {score:.2} {} {} {}", now.as_millis() / 10, s.nodes() + s.qnodes(), board.pv_to_san(&pv, &zobrist));
             nodes += s.nodes() + s.qnodes();
         }
         let now = Instant::now().duration_since(start);
         let nps = (nodes as f64 / now.as_secs_f64()) as u64;
         println!("{nodes} nodes {nps} nps");
-    }
-
-    fn nnue_label(&mut self) {
-        let input = File::open("quiescent_positions_with_results").unwrap();
-        let output = File::create("labeled.txt").unwrap();
-        let input = io::BufReader::new(input).lines().map_while(Result::ok).collect::<Vec<_>>();
-        let output = Mutex::new(output);
-
-        input
-            .par_chunks(256)
-            .map(|lines| {
-                let tt = allocate_tt(32);
-                let mut corrhist = [[0; 16384]; 2];
-                for line in lines {
-                    let mut line = line.split(" ");
-                    let board = line.next().unwrap();
-                    let stm = line.next().unwrap();
-                    let castling = line.next().unwrap();
-                    let ep = line.next().unwrap();
-                    let result = line.next().unwrap();
-                    let fen = [board, stm, castling, ep].join(" ");
-
-                    let board = Board::from_fen(&fen, &self.zobrist).unwrap();
-                    let start = Instant::now();
-                    let mut s = Search::new(start, None, &self.zobrist, &tt, &mut corrhist, &self.params, true);
-                    let mut keystack = Vec::new();
-                    let mut pv = ArrayVec::new();
-                    let score = s.search_root(&board, 6, -100_000, 100_000, &mut pv, &mut keystack);
-                    let now = Instant::now().duration_since(start);
-                    print!("6 {score:.2} {} {} ", now.as_millis() / 10, s.nodes() + s.qnodes());
-                    for m in pv {
-                        print!("{m} ");
-                    }
-                    println!();
-                    let score = if stm == "b" { -score } else { score };
-                    let result = if result == "1-0" {
-                        "1.0"
-                    } else if result == "1/2-1/2" {
-                        "0.5"
-                    } else if result == "0-1" {
-                        "0.0"
-                    } else {
-                        panic!("unknown result {result}");
-                    };
-                    let mut output = output.lock().unwrap();
-                    writeln!(output, "{fen} | {score} | {result}").unwrap()
-                }
-            })
-            .for_each(|_| ());
     }
 }
 
@@ -326,11 +252,6 @@ fn main() -> io::Result<()> {
     for arg in std::env::args() {
         if arg == "bench" {
             engine.bench(&mut tt);
-            return Ok(());
-        }
-
-        if arg == "label" {
-            engine.nnue_label();
             return Ok(());
         }
     }
@@ -449,7 +370,7 @@ fn main() -> io::Result<()> {
                 // Choose the top move
                 let m = pv[0];
                 // We must actually make the move locally too
-                engine.board = engine.board.make(m, &engine.zobrist);
+                engine.board = engine.board.make(m);
                 println!("move {m}");
                 if is_repetition_draw(&engine.keystack, engine.board.hash()) {
                     println!("1/2-1/2 {{Draw by repetition}}");
@@ -480,7 +401,7 @@ fn main() -> io::Result<()> {
                         Mode::Normal => {
                             // Find the move in the list
                             let m = engine.find_move(from, dest, prom).expect("Attempted move not found!?");
-                            engine.board = engine.board.make(m, &engine.zobrist);
+                            engine.board = engine.board.make(m);
                             if is_repetition_draw(&engine.keystack, engine.board.hash()) {
                                 println!("1/2-1/2 {{Draw by repetition}}");
                             }
@@ -492,7 +413,7 @@ fn main() -> io::Result<()> {
                             // Choose the top move
                             let m = pv[0];
                             // We must actually make the move locally too
-                            engine.board = engine.board.make(m, &engine.zobrist);
+                            engine.board = engine.board.make(m);
                             println!("move {m}");
                             if is_repetition_draw(&engine.keystack, engine.board.hash()) {
                                 println!("1/2-1/2 {{Draw by repetition}}");
@@ -501,7 +422,7 @@ fn main() -> io::Result<()> {
                         }
                         Mode::Force => {
                             let m = engine.find_move(from, dest, prom).expect("Attempted move not found!?");
-                            engine.board = engine.board.make(m, &engine.zobrist);
+                            engine.board = engine.board.make(m);
                             if is_repetition_draw(&engine.keystack, engine.board.hash()) {
                                 println!("1/2-1/2 {{Draw by repetition}}");
                             }

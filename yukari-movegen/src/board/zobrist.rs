@@ -158,28 +158,23 @@ static CASTLING: [u64; 4] = [
 static COLOUR: u64 = 0x336C0DBD40089572;
 
 #[derive(Clone)]
-pub struct Zobrist {}
+pub struct Zobrist;
 
 impl Zobrist {
-    #[must_use]
-    pub const fn new() -> Self {
-        Self { }
-    }
-
-    pub fn add_piece(&self, colour: Colour, piece: Piece, square: Square, hash: &mut u64) {
+    pub fn add_piece(colour: Colour, piece: Piece, square: Square, hash: &mut u64) {
         *hash ^= PIECE[colour as usize][piece as usize][square.into_inner() as usize];
     }
 
-    pub fn remove_piece(&self, colour: Colour, piece: Piece, square: Square, hash: &mut u64) {
+    pub fn remove_piece(colour: Colour, piece: Piece, square: Square, hash: &mut u64) {
         *hash ^= PIECE[colour as usize][piece as usize][square.into_inner() as usize];
     }
 
-    pub fn move_piece(&self, colour: Colour, piece: Piece, from_square: Square, to_square: Square, hash: &mut u64) {
+    pub fn move_piece(colour: Colour, piece: Piece, from_square: Square, to_square: Square, hash: &mut u64) {
         *hash ^= PIECE[colour as usize][piece as usize][from_square.into_inner() as usize]
             ^ PIECE[colour as usize][piece as usize][to_square.into_inner() as usize];
     }
 
-    pub fn set_ep(&self, old: Option<Square>, new: Option<Square>, hash: &mut u64) {
+    pub fn set_ep(old: Option<Square>, new: Option<Square>, hash: &mut u64) {
         if let Some(ep) = old {
             *hash ^= EN_PASSANT[File::from(ep) as usize];
         }
@@ -188,21 +183,16 @@ impl Zobrist {
         }
     }
 
-    pub fn add_castling(&self, kind: usize, hash: &mut u64) {
+    pub fn add_castling(kind: usize, hash: &mut u64) {
         *hash ^= CASTLING[kind];
     }
 
-    pub fn remove_castling(&self, kind: usize, hash: &mut u64) {
+    pub fn remove_castling(kind: usize, hash: &mut u64) {
         *hash ^= CASTLING[kind];
     }
 
-    pub fn toggle_side(&self, hash: &mut u64) {
+    pub fn toggle_side(hash: &mut u64) {
         *hash ^= COLOUR;
     }
 }
 
-impl Default for Zobrist {
-    fn default() -> Self {
-        Self::new()
-    }
-}

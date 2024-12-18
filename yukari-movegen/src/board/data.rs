@@ -129,22 +129,22 @@ impl BoardData {
     }
 
     /// Pawn-only Zobrist hash of this position.
-    pub fn hash_pawns(&self, zobrist: &Zobrist) -> u64 {
+    pub fn hash_pawns(&self) -> u64 {
         let mut hash = 0;
         for pawn in self.pawns() {
             let square = self.square_of_piece(pawn);
             let colour = pawn.colour();
-            zobrist.add_piece(colour, Piece::Pawn, square, &mut hash);
+            Zobrist::add_piece(colour, Piece::Pawn, square, &mut hash);
         }
         hash
     }
 
     /// Add a `Piece` to a `Square`.
-    pub fn add_piece(&mut self, piece: Piece, colour: Colour, square: Square, update: bool, zobrist: &Zobrist) {
+    pub fn add_piece(&mut self, piece: Piece, colour: Colour, square: Square, update: bool) {
         let piece_index = self.piecemask.add_piece(piece, colour);
         self.piecelist.add_piece(piece_index, square);
         self.index.add_piece(piece_index, square);
-        zobrist.add_piece(colour, self.piece_from_bit(piece_index), square, &mut self.hash);
+        Zobrist::add_piece(colour, self.piece_from_bit(piece_index), square, &mut self.hash);
         self.eval.add_piece(piece, square, colour);
 
         if update {
@@ -154,13 +154,13 @@ impl BoardData {
     }
 
     /// Remove a piece from a square.
-    pub fn remove_piece(&mut self, piece_index: PieceIndex, update: bool, zobrist: &Zobrist) {
+    pub fn remove_piece(&mut self, piece_index: PieceIndex, update: bool) {
         let square = self.square_of_piece(piece_index);
         let piece = self.piece_from_bit(piece_index);
         self.piecemask.remove_piece(piece_index);
         self.piecelist.remove_piece(piece_index, square);
         self.index.remove_piece(piece_index, square);
-        zobrist.remove_piece(piece_index.colour(), piece, square, &mut self.hash);
+        Zobrist::remove_piece(piece_index.colour(), piece, square, &mut self.hash);
         self.eval.remove_piece(piece, square, piece_index.colour());
 
         if update {
@@ -170,7 +170,7 @@ impl BoardData {
     }
 
     /// Move a piece from a square to another square.
-    pub fn move_piece(&mut self, from_square: Square, to_square: Square, zobrist: &Zobrist) {
+    pub fn move_piece(&mut self, from_square: Square, to_square: Square) {
         let piece_index = self.index[from_square].expect("attempted to move piece from empty square");
         let piece = self.piece_from_bit(piece_index);
         let slide_dir = from_square.direction(to_square).and_then(|dir| {
@@ -189,7 +189,7 @@ impl BoardData {
 
         self.piecelist.move_piece(piece_index, to_square);
         self.index.move_piece(piece_index, from_square, to_square);
-        zobrist.move_piece(piece_index.colour(), piece, from_square, to_square, &mut self.hash);
+        Zobrist::move_piece(piece_index.colour(), piece, from_square, to_square, &mut self.hash);
         self.eval.move_piece(piece, from_square, to_square, piece_index.colour());
 
         if slide_dir.is_some() {
@@ -202,23 +202,23 @@ impl BoardData {
     }
 
     /// Set the en-passant square.
-    pub fn set_ep(&mut self, old: Option<Square>, new: Option<Square>, zobrist: &Zobrist) {
-        zobrist.set_ep(old, new, &mut self.hash);
+    pub fn set_ep(&mut self, old: Option<Square>, new: Option<Square>) {
+        Zobrist::set_ep(old, new, &mut self.hash);
     }
 
     /// Add castling rights.
-    pub fn add_castling(&mut self, kind: usize, zobrist: &Zobrist) {
-        zobrist.add_castling(kind, &mut self.hash);
+    pub fn add_castling(&mut self, kind: usize) {
+        Zobrist::add_castling(kind, &mut self.hash);
     }
 
     /// Remove castling rights.
-    pub fn remove_castling(&mut self, kind: usize, zobrist: &Zobrist) {
-        zobrist.remove_castling(kind, &mut self.hash);
+    pub fn remove_castling(&mut self, kind: usize) {
+        Zobrist::remove_castling(kind, &mut self.hash);
     }
 
     /// Toggle side to move.
-    pub fn toggle_side(&mut self, zobrist: &Zobrist) {
-        zobrist.toggle_side(&mut self.hash);
+    pub fn toggle_side(&mut self) {
+        Zobrist::toggle_side(&mut self.hash);
     }
 
     /// Evaluation from the perspective of `colour`.

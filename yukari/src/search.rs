@@ -4,9 +4,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use indicatif::{ProgressBar, ProgressStyle};
 use tinyvec::ArrayVec;
-use yukari_movegen::{Board, Move, Zobrist};
+use yukari_movegen::{Board, Move};
+
+use crate::output;
 
 const MATE_VALUE: i32 = 10_000;
 
@@ -92,14 +93,12 @@ pub fn allocate_tt(megabytes: usize) -> Vec<TtEntry> {
 }
 
 pub struct Search<'a> {
-    human_output: bool,
     nodes: u64,
     qnodes: u64,
     nullmove_attempts: u64,
     nullmove_success: u64,
     start: Instant,
     stop_after: Option<Instant>,
-    zobrist: &'a Zobrist,
     history: [[i16; 64]; 64],
     tt: &'a [TtEntry],
     corrhist: &'a mut [[i32; 16384]; 2],
@@ -109,18 +108,16 @@ pub struct Search<'a> {
 impl<'a> Search<'a> {
     #[must_use]
     pub fn new(
-        start: Instant, stop_after: Option<Instant>, zobrist: &'a Zobrist, tt: &'a [TtEntry], corrhist: &'a mut [[i32; 16384]; 2],
-        params: &'a SearchParams, human_output: bool,
+        start: Instant, stop_after: Option<Instant>, tt: &'a [TtEntry], corrhist: &'a mut [[i32; 16384]; 2],
+        params: &'a SearchParams,
     ) -> Self {
         Self {
-            human_output,
             nodes: 0,
             qnodes: 0,
             nullmove_attempts: 0,
             nullmove_success: 0,
             start,
             stop_after,
-            zobrist,
             history: [[0; 64]; 64],
             tt,
             corrhist,
@@ -132,7 +129,7 @@ impl<'a> Search<'a> {
         const CORRHIST_GRAIN: i32 = 256;
         const CORRHIST_WEIGHT_SCALE: i32 = 256;
         const CORRHIST_MAX: i32 = 256 * 32;
-        let entry = &mut self.corrhist[board.side() as usize][board.hash_pawns(self.zobrist) as usize & 16383];
+        let entry = &mut self.corrhist[board.side() as usize][board.hash_pawns() as usize & 16383];
         let diff = diff * CORRHIST_GRAIN;
         let weight = 16.min(depth + 1);
 
@@ -142,7 +139,7 @@ impl<'a> Search<'a> {
 
     fn eval_with_corrhist(&self, board: &Board, eval: i32) -> i32 {
         const CORRHIST_GRAIN: i32 = 256;
-        let entry = &self.corrhist[board.side() as usize][board.hash_pawns(self.zobrist) as usize & 16383];
+        let entry = &self.corrhist[board.side() as usize][board.hash_pawns() as usize & 16383];
         (eval + entry / CORRHIST_GRAIN).clamp(-MATE_VALUE + 1, MATE_VALUE - 1)
     }
 
@@ -172,7 +169,7 @@ impl<'a> Search<'a> {
         board.generate_captures_incremental(|m| {
             self.qnodes += 1;
 
-            let board = board.make(m, self.zobrist);
+            let board = board.make(m);
 
             let mut child_pv = ArrayVec::new();
             let score = -self.quiesce(&board, -beta, -alpha, &mut child_pv, ply + 1);
@@ -251,7 +248,7 @@ impl<'a> Search<'a> {
 
     #[allow(clippy::too_many_arguments)]
     fn search(
-        &mut self, board: &Board, mut depth: i32, mut lower_bound: i32, upper_bound: i32, pv: &mut ArrayVec<[Move; 64]>, ply: i32,
+        &mut self, board: &Board, mut depth: i32, mut lower_bound: i32, upper_bound: i32, output: &mut dyn output::Output, pv: &mut ArrayVec<[Move; 64]>, ply: i32,
         keystack: &mut Vec<u64>,
     ) -> i32 {
         // Emergency bailout
@@ -303,10 +300,10 @@ impl<'a> Search<'a> {
 
         if !board.in_check() && depth >= 2 && eval_int >= upper_bound {
             keystack.push(board.hash());
-            let board = board.make_null(self.zobrist);
+            let board = board.make_null();
             let mut child_pv = ArrayVec::new();
             let score =
-                -self.search(&board, depth - 1 - reduction, -upper_bound, -upper_bound + 1, &mut child_pv, ply + 1, keystack);
+                -self.search(&board, depth - 1 - reduction, -upper_bound, -upper_bound + 1, output, &mut child_pv, ply + 1, keystack);
             keystack.pop();
 
             self.nullmove_attempts += 1;
@@ -361,18 +358,6 @@ impl<'a> Search<'a> {
             }
         });
 
-        let progress = if ply == 0 && self.human_output { 
-            let progress = ProgressBar::new(moves.len() as u64);
-            progress.set_style(
-                ProgressStyle::with_template("[{bar:40.magenta/red}] {msg:30!}")
-                    .unwrap()
-                    .progress_chars("━╸ "),
-            );
-            Some(progress) 
-        } else { 
-            None 
-        };
-
         let mut best_move = None;
         let mut best_score = i32::MIN;
         let mut raised_lower_bound = false;
@@ -381,28 +366,13 @@ impl<'a> Search<'a> {
             self.nodes += 1;
 
             let mut child_pv = ArrayVec::new();
-            let child_board = board.make(m, self.zobrist);
+            let child_board = board.make(m);
             let mut score = 0;
 
             if ply == 0 {
                 let now = Instant::now();
-                let verbose = now >= self.start + Duration::from_secs(2);
-                if verbose {
-                    if self.human_output {
-                        let progress = progress.as_ref().unwrap();
-                        progress.inc(1);
-                        progress.set_message(format!("{} ({} nodes)", board.to_san(m, self.zobrist), self.nodes() + self.qnodes()));
-                    } else {
-                        println!(
-                            "stat01: {} {} {} {} {} {}",
-                            now.duration_since(self.start).as_millis() / 10,
-                            self.nodes() + self.qnodes(),
-                            depth + root_reduction,
-                            moves.len() - i,
-                            moves.len(),
-                            m
-                        );
-                    }
+                if now >= self.start + Duration::from_secs(2) {
+                    output.new_move(board, depth + root_reduction, now.duration_since(self.start), self.nodes() + self.qnodes(), m);
                 }
             }
 
@@ -420,16 +390,16 @@ impl<'a> Search<'a> {
 
             if i > 0 {
                 score =
-                    -self.search(&child_board, depth - reduction, -lower_bound - 1, -lower_bound, &mut child_pv, ply + 1, keystack);
+                    -self.search(&child_board, depth - reduction, -lower_bound - 1, -lower_bound, output, &mut child_pv, ply + 1, keystack);
             }
             if i > 0 && reduction > 1 && score > lower_bound {
                 reduction = 1;
                 score =
-                    -self.search(&child_board, depth - reduction, -lower_bound - 1, -lower_bound, &mut child_pv, ply + 1, keystack);
+                    -self.search(&child_board, depth - reduction, -lower_bound - 1, -lower_bound, output, &mut child_pv, ply + 1, keystack);
             }
             if i == 0 || lower_bound != upper_bound - 1 && score > lower_bound {
                 reduction = 1;
-                score = -self.search(&child_board, depth - reduction, -upper_bound, -lower_bound, &mut child_pv, ply + 1, keystack);
+                score = -self.search(&child_board, depth - reduction, -upper_bound, -lower_bound, output, &mut child_pv, ply + 1, keystack);
             }
 
             keystack.pop();
@@ -442,9 +412,6 @@ impl<'a> Search<'a> {
             if self.nodes.trailing_zeros() >= 10 {
                 if let Some(time) = self.stop_after {
                     if Instant::now() >= time {
-                        if let Some(progress) = progress {
-                            progress.finish_and_clear();
-                        }
                         return best_score;
                     }
                 }
@@ -477,27 +444,11 @@ impl<'a> Search<'a> {
 
                 if ply == 0 {
                     let now = Instant::now();
-                    let verbose = now >= self.start + Duration::from_secs(2);
-                    if verbose {
-                        let now = now.duration_since(self.start);
-                        if self.human_output {
-                            let progress = progress.as_ref().unwrap();
-                            progress.println(format!("{:>2} {:>+6.2} {:>8.3} {:>9}\t{}", depth + root_reduction, ((best_score as f32) / 100.0), now.as_secs_f32(), self.nodes() + self.qnodes(), board.pv_to_san(pv, self.zobrist)));
-                        } else {
-                            print!("{} {} {} {} ", depth + root_reduction, score, now.as_millis() / 10, self.nodes() + self.qnodes());
-                            for m in &*pv {
-                                print!("{m} ");
-                            }
-                            println!();
-                        }
+                    if now >= self.start + Duration::from_secs(2) {
+                        output.new_pv(board, depth + root_reduction, score, now.duration_since(self.start), self.nodes() + self.qnodes(), pv);
                     }
                 }
             }
-        }
-
-        if ply == 0 && self.human_output {
-            let progress = progress.as_ref().unwrap();
-            progress.finish_and_clear();
         }
 
         self.write_tt(
@@ -518,8 +469,8 @@ impl<'a> Search<'a> {
         best_score
     }
 
-    pub fn search_root(&mut self, board: &Board, depth: i32, lower_bound: i32, upper_bound: i32, pv: &mut ArrayVec<[Move; 64]>, keystack: &mut Vec<u64>) -> i32 {
-        self.search(board, depth, lower_bound, upper_bound, pv, 0, keystack)
+    pub fn search_root(&mut self, board: &Board, depth: i32, lower_bound: i32, upper_bound: i32, output: &mut dyn output::Output, pv: &mut ArrayVec<[Move; 64]>, keystack: &mut Vec<u64>) -> i32 {
+        self.search(board, depth, lower_bound, upper_bound, output, pv, 0, keystack)
     }
 
     #[must_use]

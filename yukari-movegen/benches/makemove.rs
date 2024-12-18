@@ -1,10 +1,9 @@
 use criterion::{criterion_group, criterion_main, Criterion, Throughput};
-use yukari_movegen::{perft, Board, Move, MoveType, Square, Zobrist};
+use yukari_movegen::{perft, Board, Move, MoveType, Square};
 
 pub fn makemove_bench(c: &mut Criterion) {
-    let zobrist = Zobrist::new();
-    let startpos = Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &zobrist).unwrap();
-    let kiwipete = Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", &zobrist).unwrap();
+    let startpos = Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
+    let kiwipete = Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1").unwrap();
 
     let e2 = unsafe { Square::from_u8_unchecked(12) };
     let e4 = unsafe { Square::from_u8_unchecked(28) };
@@ -24,20 +23,19 @@ pub fn makemove_bench(c: &mut Criterion) {
     group.noise_threshold(0.025);
 
     group.throughput(Throughput::Elements(1));
-    group.bench_with_input("startpos-e4", &startpos, |b, board| b.iter(|| board.make(e2e4, &zobrist)));
+    group.bench_with_input("startpos-e4", &startpos, |b, board| b.iter(|| board.make(e2e4)));
 
     group.throughput(Throughput::Elements(1));
-    group.bench_with_input("kiwipete-Qd3", &kiwipete, |b, board| b.iter(|| board.make(f3d3, &zobrist)));
+    group.bench_with_input("kiwipete-Qd3", &kiwipete, |b, board| b.iter(|| board.make(f3d3)));
 
     group.throughput(Throughput::Elements(1));
-    group.bench_with_input("kiwipete-Bxa6", &kiwipete, |b, board| b.iter(|| board.make(e2a6, &zobrist)));
+    group.bench_with_input("kiwipete-Bxa6", &kiwipete, |b, board| b.iter(|| board.make(e2a6)));
 
     group.finish();
 }
 
 pub fn perft_bench(c: &mut Criterion) {
-    let zobrist = Zobrist::new();
-    let board = Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", &zobrist).unwrap();
+    let board = Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
 
     let mut group = c.benchmark_group("perft");
 
@@ -48,7 +46,7 @@ pub fn perft_bench(c: &mut Criterion) {
     group.throughput(Throughput::Elements(20));
     group.bench_with_input("1", &board, |b, board| {
         b.iter(|| {
-            assert_eq!(perft(board, &zobrist, 1), 20);
+            assert_eq!(perft(board, 1), 20);
         })
     });
 
@@ -57,7 +55,7 @@ pub fn perft_bench(c: &mut Criterion) {
     group.throughput(Throughput::Elements(400));
     group.bench_with_input("2", &board, |b, board| {
         b.iter(|| {
-            assert_eq!(perft(board, &zobrist, 2), 400);
+            assert_eq!(perft(board, 2), 400);
         })
     });
 
@@ -66,20 +64,20 @@ pub fn perft_bench(c: &mut Criterion) {
     group.throughput(Throughput::Elements(8902));
     group.bench_with_input("3", &board, |b, board| {
         b.iter(|| {
-            assert_eq!(perft(board, &zobrist, 3), 8902);
+            assert_eq!(perft(board, 3), 8902);
         })
     });
 
     group.throughput(Throughput::Elements(197_281));
     group.bench_with_input("4", &board, |b, board| {
         b.iter(|| {
-            assert_eq!(perft(board, &zobrist, 4), 197_281);
+            assert_eq!(perft(board, 4), 197_281);
         })
     });
 
     group.finish();
 
-    let board = Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", &zobrist).unwrap();
+    let board = Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1").unwrap();
 
     let mut group = c.benchmark_group("kiwipete");
 
@@ -90,7 +88,7 @@ pub fn perft_bench(c: &mut Criterion) {
     group.throughput(Throughput::Elements(48));
     group.bench_with_input("1", &board, |b, board| {
         b.iter(|| {
-            assert_eq!(perft(board, &zobrist, 1), 48);
+            assert_eq!(perft(board, 1), 48);
         })
     });
 
@@ -99,7 +97,7 @@ pub fn perft_bench(c: &mut Criterion) {
     group.throughput(Throughput::Elements(2039));
     group.bench_with_input("2", &board, |b, board| {
         b.iter(|| {
-            assert_eq!(perft(board, &zobrist, 2), 2039);
+            assert_eq!(perft(board, 2), 2039);
         })
     });
 
@@ -108,7 +106,7 @@ pub fn perft_bench(c: &mut Criterion) {
     group.throughput(Throughput::Elements(97862));
     group.bench_with_input("3", &board, |b, board| {
         b.iter(|| {
-            assert_eq!(perft(board, &zobrist, 3), 97862);
+            assert_eq!(perft(board, 3), 97862);
         })
     });
 
