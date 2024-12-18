@@ -1,5 +1,4 @@
 #![warn(clippy::pedantic, clippy::nursery, clippy::perf, clippy::style)]
-
 #![feature(array_chunks, portable_simd)]
 
 mod board;
@@ -48,7 +47,6 @@ mod perft {
 
     #[test]
     fn perft_test1() {
-
         let startpos = Board::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
         assert_eq!(perft(&startpos, 1), 20);
         assert_eq!(perft(&startpos, 2), 400);
@@ -60,7 +58,6 @@ mod perft {
 
     #[test]
     fn perft_test2() {
-
         let startpos = Board::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1").unwrap();
         assert_eq!(perft(&startpos, 1), 48);
         assert_eq!(perft(&startpos, 2), 2039);
@@ -71,7 +68,6 @@ mod perft {
 
     #[test]
     fn perft_test3() {
-
         let startpos = Board::from_fen("4k3/8/8/8/8/8/8/4K2R w K - 0 1").unwrap();
         assert_eq!(perft(&startpos, 1), 15);
         assert_eq!(perft(&startpos, 2), 66);
@@ -83,7 +79,6 @@ mod perft {
 
     #[test]
     fn perft_test4() {
-
         let startpos = Board::from_fen("4k3/8/8/8/8/8/8/R3K3 w Q - 0 1").unwrap();
         assert_eq!(perft(&startpos, 1), 16);
         assert_eq!(perft(&startpos, 2), 71);
@@ -95,7 +90,6 @@ mod perft {
 
     #[test]
     fn perft_test5() {
-
         let startpos = Board::from_fen("4k2r/8/8/8/8/8/8/4K3 w k - 0 1").unwrap();
         assert_eq!(perft(&startpos, 1), 5);
         assert_eq!(perft(&startpos, 2), 75);
@@ -107,7 +101,6 @@ mod perft {
 
     #[test]
     fn perft_test6() {
-
         let startpos = Board::from_fen("r3k3/8/8/8/8/8/8/4K3 w q - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -120,7 +113,6 @@ mod perft {
 
     #[test]
     fn perft_test7() {
-
         let startpos = Board::from_fen("4k3/8/8/8/8/8/8/R3K2R w KQ - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 26);
@@ -133,7 +125,6 @@ mod perft {
 
     #[test]
     fn perft_test8() {
-
         let startpos = Board::from_fen("r3k2r/8/8/8/8/8/8/4K3 w kq - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -146,7 +137,6 @@ mod perft {
 
     #[test]
     fn perft_test9() {
-
         let startpos = Board::from_fen("8/8/8/8/8/8/6k1/4K2R w K - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 12);
@@ -159,7 +149,6 @@ mod perft {
 
     #[test]
     fn perft_test10() {
-
         let startpos = Board::from_fen("8/8/8/8/8/8/1k6/R3K3 w Q - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 15);
@@ -172,7 +161,6 @@ mod perft {
 
     #[test]
     fn perft_test11() {
-
         let startpos = Board::from_fen("4k2r/6K1/8/8/8/8/8/8 w k - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 3);
@@ -185,7 +173,6 @@ mod perft {
 
     #[test]
     fn perft_test12() {
-
         let startpos = Board::from_fen("r3k3/1K6/8/8/8/8/8/8 w q - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -198,7 +185,6 @@ mod perft {
 
     #[test]
     fn perft_test13() {
-
         let startpos = Board::from_fen("r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 26);
@@ -211,7 +197,6 @@ mod perft {
 
     #[test]
     fn perft_test14() {
-
         let startpos = Board::from_fen("r3k2r/8/8/8/8/8/8/1R2K2R w Kkq - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 25);
@@ -224,7 +209,6 @@ mod perft {
 
     #[test]
     fn perft_test15() {
-
         let startpos = Board::from_fen("r3k2r/8/8/8/8/8/8/2R1K2R w Kkq - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 25);
@@ -237,7 +221,6 @@ mod perft {
 
     #[test]
     fn perft_test16() {
-
         let startpos = Board::from_fen("r3k2r/8/8/8/8/8/8/R3K1R1 w Qkq - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 25);
@@ -250,7 +233,6 @@ mod perft {
 
     #[test]
     fn perft_test17() {
-
         let startpos = Board::from_fen("1r2k2r/8/8/8/8/8/8/R3K2R w KQk - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 26);
@@ -263,7 +245,6 @@ mod perft {
 
     #[test]
     fn perft_test18() {
-
         let startpos = Board::from_fen("2r1k2r/8/8/8/8/8/8/R3K2R w KQk - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 25);
@@ -276,7 +257,6 @@ mod perft {
 
     #[test]
     fn perft_test19() {
-
         let startpos = Board::from_fen("r3k1r1/8/8/8/8/8/8/R3K2R w KQq - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 25);
@@ -289,7 +269,6 @@ mod perft {
 
     #[test]
     fn perft_test20() {
-
         let startpos = Board::from_fen("4k3/8/8/8/8/8/8/4K2R b K - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -302,7 +281,6 @@ mod perft {
 
     #[test]
     fn perft_test21() {
-
         let startpos = Board::from_fen("4k3/8/8/8/8/8/8/R3K3 b Q - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -315,7 +293,6 @@ mod perft {
 
     #[test]
     fn perft_test22() {
-
         let startpos = Board::from_fen("4k2r/8/8/8/8/8/8/4K3 b k - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 15);
@@ -328,7 +305,6 @@ mod perft {
 
     #[test]
     fn perft_test23() {
-
         let startpos = Board::from_fen("r3k3/8/8/8/8/8/8/4K3 b q - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 16);
@@ -341,7 +317,6 @@ mod perft {
 
     #[test]
     fn perft_test24() {
-
         let startpos = Board::from_fen("4k3/8/8/8/8/8/8/R3K2R b KQ - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -354,7 +329,6 @@ mod perft {
 
     #[test]
     fn perft_test25() {
-
         let startpos = Board::from_fen("r3k2r/8/8/8/8/8/8/4K3 b kq - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 26);
@@ -367,7 +341,6 @@ mod perft {
 
     #[test]
     fn perft_test26() {
-
         let startpos = Board::from_fen("8/8/8/8/8/8/6k1/4K2R b K - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 3);
@@ -380,7 +353,6 @@ mod perft {
 
     #[test]
     fn perft_test27() {
-
         let startpos = Board::from_fen("8/8/8/8/8/8/1k6/R3K3 b Q - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -393,7 +365,6 @@ mod perft {
 
     #[test]
     fn perft_test28() {
-
         let startpos = Board::from_fen("4k2r/6K1/8/8/8/8/8/8 b k - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 12);
@@ -406,7 +377,6 @@ mod perft {
 
     #[test]
     fn perft_test29() {
-
         let startpos = Board::from_fen("r3k3/1K6/8/8/8/8/8/8 b q - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 15);
@@ -419,7 +389,6 @@ mod perft {
 
     #[test]
     fn perft_test30() {
-
         let startpos = Board::from_fen("r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 26);
@@ -432,7 +401,6 @@ mod perft {
 
     #[test]
     fn perft_test31() {
-
         let startpos = Board::from_fen("r3k2r/8/8/8/8/8/8/1R2K2R b Kkq - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 26);
@@ -445,7 +413,6 @@ mod perft {
 
     #[test]
     fn perft_test32() {
-
         let startpos = Board::from_fen("r3k2r/8/8/8/8/8/8/2R1K2R b Kkq - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 25);
@@ -458,7 +425,6 @@ mod perft {
 
     #[test]
     fn perft_test33() {
-
         let startpos = Board::from_fen("r3k2r/8/8/8/8/8/8/R3K1R1 b Qkq - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 25);
@@ -471,7 +437,6 @@ mod perft {
 
     #[test]
     fn perft_test34() {
-
         let startpos = Board::from_fen("1r2k2r/8/8/8/8/8/8/R3K2R b KQk - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 25);
@@ -484,7 +449,6 @@ mod perft {
 
     #[test]
     fn perft_test35() {
-
         let startpos = Board::from_fen("2r1k2r/8/8/8/8/8/8/R3K2R b KQk - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 25);
@@ -497,7 +461,6 @@ mod perft {
 
     #[test]
     fn perft_test36() {
-
         let startpos = Board::from_fen("r3k1r1/8/8/8/8/8/8/R3K2R b KQq - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 25);
@@ -510,7 +473,6 @@ mod perft {
 
     #[test]
     fn perft_test37() {
-
         let startpos = Board::from_fen("8/1n4N1/2k5/8/8/5K2/1N4n1/8 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 14);
@@ -523,7 +485,6 @@ mod perft {
 
     #[test]
     fn perft_test38() {
-
         let startpos = Board::from_fen("8/1k6/8/5N2/8/4n3/8/2K5 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 11);
@@ -536,7 +497,6 @@ mod perft {
 
     #[test]
     fn perft_test39() {
-
         let startpos = Board::from_fen("8/8/4k3/3Nn3/3nN3/4K3/8/8 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 19);
@@ -549,7 +509,6 @@ mod perft {
 
     #[test]
     fn perft_test40() {
-
         let startpos = Board::from_fen("K7/8/2n5/1n6/8/8/8/k6N w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 3);
@@ -562,7 +521,6 @@ mod perft {
 
     #[test]
     fn perft_test41() {
-
         let startpos = Board::from_fen("k7/8/2N5/1N6/8/8/8/K6n w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 17);
@@ -575,7 +533,6 @@ mod perft {
 
     #[test]
     fn perft_test42() {
-
         let startpos = Board::from_fen("8/1n4N1/2k5/8/8/5K2/1N4n1/8 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 15);
@@ -588,7 +545,6 @@ mod perft {
 
     #[test]
     fn perft_test43() {
-
         let startpos = Board::from_fen("8/1k6/8/5N2/8/4n3/8/2K5 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 16);
@@ -601,7 +557,6 @@ mod perft {
 
     #[test]
     fn perft_test44() {
-
         let startpos = Board::from_fen("8/8/3K4/3Nn3/3nN3/4k3/8/8 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -614,7 +569,6 @@ mod perft {
 
     #[test]
     fn perft_test45() {
-
         let startpos = Board::from_fen("K7/8/2n5/1n6/8/8/8/k6N b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 17);
@@ -627,7 +581,6 @@ mod perft {
 
     #[test]
     fn perft_test46() {
-
         let startpos = Board::from_fen("k7/8/2N5/1N6/8/8/8/K6n b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 3);
@@ -640,7 +593,6 @@ mod perft {
 
     #[test]
     fn perft_test47() {
-
         let startpos = Board::from_fen("B6b/8/8/8/2K5/4k3/8/b6B w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 17);
@@ -653,7 +605,6 @@ mod perft {
 
     #[test]
     fn perft_test48() {
-
         let startpos = Board::from_fen("8/8/1B6/7b/7k/8/2B1b3/7K w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 21);
@@ -666,7 +617,6 @@ mod perft {
 
     #[test]
     fn perft_test49() {
-
         let startpos = Board::from_fen("k7/B7/1B6/1B6/8/8/8/K6b w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 21);
@@ -679,7 +629,6 @@ mod perft {
 
     #[test]
     fn perft_test50() {
-
         let startpos = Board::from_fen("K7/b7/1b6/1b6/8/8/8/k6B w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 7);
@@ -692,7 +641,6 @@ mod perft {
 
     #[test]
     fn perft_test51() {
-
         let startpos = Board::from_fen("B6b/8/8/8/2K5/5k2/8/b6B b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 6);
@@ -705,7 +653,6 @@ mod perft {
 
     #[test]
     fn perft_test52() {
-
         let startpos = Board::from_fen("8/8/1B6/7b/7k/8/2B1b3/7K b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 17);
@@ -718,7 +665,6 @@ mod perft {
 
     #[test]
     fn perft_test53() {
-
         let startpos = Board::from_fen("k7/B7/1B6/1B6/8/8/8/K6b b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 7);
@@ -731,7 +677,6 @@ mod perft {
 
     #[test]
     fn perft_test54() {
-
         let startpos = Board::from_fen("K7/b7/1b6/1b6/8/8/8/k6B b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 21);
@@ -744,7 +689,6 @@ mod perft {
 
     #[test]
     fn perft_test55() {
-
         let startpos = Board::from_fen("7k/RR6/8/8/8/8/rr6/7K w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 19);
@@ -757,7 +701,6 @@ mod perft {
 
     #[test]
     fn perft_test56() {
-
         let startpos = Board::from_fen("R6r/8/8/2K5/5k2/8/8/r6R w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 36);
@@ -770,7 +713,6 @@ mod perft {
 
     #[test]
     fn perft_test57() {
-
         let startpos = Board::from_fen("7k/RR6/8/8/8/8/rr6/7K b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 19);
@@ -783,7 +725,6 @@ mod perft {
 
     #[test]
     fn perft_test58() {
-
         let startpos = Board::from_fen("R6r/8/8/2K5/5k2/8/8/r6R b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 36);
@@ -796,7 +737,6 @@ mod perft {
 
     #[test]
     fn perft_test59() {
-
         let startpos = Board::from_fen("6kq/8/8/8/8/8/8/7K w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 2);
@@ -809,7 +749,6 @@ mod perft {
 
     #[test]
     fn perft_test60() {
-
         let startpos = Board::from_fen("6KQ/8/8/8/8/8/8/7k b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 2);
@@ -822,7 +761,6 @@ mod perft {
 
     #[test]
     fn perft_test61() {
-
         let startpos = Board::from_fen("K7/8/8/3Q4/4q3/8/8/7k w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 6);
@@ -835,7 +773,6 @@ mod perft {
 
     #[test]
     fn perft_test62() {
-
         let startpos = Board::from_fen("6qk/8/8/8/8/8/8/7K b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 22);
@@ -848,7 +785,6 @@ mod perft {
 
     #[test]
     fn perft_test63() {
-
         let startpos = Board::from_fen("6KQ/8/8/8/8/8/8/7k b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 2);
@@ -861,7 +797,6 @@ mod perft {
 
     #[test]
     fn perft_test64() {
-
         let startpos = Board::from_fen("K7/8/8/3Q4/4q3/8/8/7k b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 6);
@@ -874,7 +809,6 @@ mod perft {
 
     #[test]
     fn perft_test65() {
-
         let startpos = Board::from_fen("8/8/8/8/8/K7/P7/k7 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 3);
@@ -887,7 +821,6 @@ mod perft {
 
     #[test]
     fn perft_test66() {
-
         let startpos = Board::from_fen("8/8/8/8/8/7K/7P/7k w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 3);
@@ -900,7 +833,6 @@ mod perft {
 
     #[test]
     fn perft_test67() {
-
         let startpos = Board::from_fen("K7/p7/k7/8/8/8/8/8 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 1);
@@ -913,7 +845,6 @@ mod perft {
 
     #[test]
     fn perft_test68() {
-
         let startpos = Board::from_fen("7K/7p/7k/8/8/8/8/8 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 1);
@@ -926,7 +857,6 @@ mod perft {
 
     #[test]
     fn perft_test69() {
-
         let startpos = Board::from_fen("8/2k1p3/3pP3/3P2K1/8/8/8/8 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 7);
@@ -939,7 +869,6 @@ mod perft {
 
     #[test]
     fn perft_test70() {
-
         let startpos = Board::from_fen("8/8/8/8/8/K7/P7/k7 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 1);
@@ -952,7 +881,6 @@ mod perft {
 
     #[test]
     fn perft_test71() {
-
         let startpos = Board::from_fen("8/8/8/8/8/7K/7P/7k b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 1);
@@ -965,7 +893,6 @@ mod perft {
 
     #[test]
     fn perft_test72() {
-
         let startpos = Board::from_fen("K7/p7/k7/8/8/8/8/8 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 3);
@@ -978,7 +905,6 @@ mod perft {
 
     #[test]
     fn perft_test73() {
-
         let startpos = Board::from_fen("7K/7p/7k/8/8/8/8/8 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 3);
@@ -991,7 +917,6 @@ mod perft {
 
     #[test]
     fn perft_test74() {
-
         let startpos = Board::from_fen("8/2k1p3/3pP3/3P2K1/8/8/8/8 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1004,7 +929,6 @@ mod perft {
 
     #[test]
     fn perft_test75() {
-
         let startpos = Board::from_fen("8/8/8/8/8/4k3/4P3/4K3 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 2);
@@ -1017,7 +941,6 @@ mod perft {
 
     #[test]
     fn perft_test76() {
-
         let startpos = Board::from_fen("4k3/4p3/4K3/8/8/8/8/8 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 2);
@@ -1030,7 +953,6 @@ mod perft {
 
     #[test]
     fn perft_test77() {
-
         let startpos = Board::from_fen("8/8/7k/7p/7P/7K/8/8 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 3);
@@ -1043,7 +965,6 @@ mod perft {
 
     #[test]
     fn perft_test78() {
-
         let startpos = Board::from_fen("8/8/k7/p7/P7/K7/8/8 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 3);
@@ -1056,7 +977,6 @@ mod perft {
 
     #[test]
     fn perft_test79() {
-
         let startpos = Board::from_fen("8/8/3k4/3p4/3P4/3K4/8/8 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1069,7 +989,6 @@ mod perft {
 
     #[test]
     fn perft_test80() {
-
         let startpos = Board::from_fen("8/3k4/3p4/8/3P4/3K4/8/8 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 8);
@@ -1082,7 +1001,6 @@ mod perft {
 
     #[test]
     fn perft_test81() {
-
         let startpos = Board::from_fen("8/8/3k4/3p4/8/3P4/3K4/8 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 8);
@@ -1095,7 +1013,6 @@ mod perft {
 
     #[test]
     fn perft_test82() {
-
         let startpos = Board::from_fen("k7/8/3p4/8/3P4/8/8/7K w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -1108,7 +1025,6 @@ mod perft {
 
     #[test]
     fn perft_test83() {
-
         let startpos = Board::from_fen("8/8/7k/7p/7P/7K/8/8 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 3);
@@ -1121,7 +1037,6 @@ mod perft {
 
     #[test]
     fn perft_test84() {
-
         let startpos = Board::from_fen("8/8/k7/p7/P7/K7/8/8 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 3);
@@ -1134,7 +1049,6 @@ mod perft {
 
     #[test]
     fn perft_test85() {
-
         let startpos = Board::from_fen("8/8/3k4/3p4/3P4/3K4/8/8 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1147,7 +1061,6 @@ mod perft {
 
     #[test]
     fn perft_test86() {
-
         let startpos = Board::from_fen("8/3k4/3p4/8/3P4/3K4/8/8 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 8);
@@ -1160,7 +1073,6 @@ mod perft {
 
     #[test]
     fn perft_test87() {
-
         let startpos = Board::from_fen("8/8/3k4/3p4/8/3P4/3K4/8 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 8);
@@ -1173,7 +1085,6 @@ mod perft {
 
     #[test]
     fn perft_test88() {
-
         let startpos = Board::from_fen("k7/8/3p4/8/3P4/8/8/7K b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -1186,7 +1097,6 @@ mod perft {
 
     #[test]
     fn perft_test89() {
-
         let startpos = Board::from_fen("7k/3p4/8/8/3P4/8/8/K7 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -1199,7 +1109,6 @@ mod perft {
 
     #[test]
     fn perft_test90() {
-
         let startpos = Board::from_fen("7k/8/8/3p4/8/8/3P4/K7 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1212,7 +1121,6 @@ mod perft {
 
     #[test]
     fn perft_test91() {
-
         let startpos = Board::from_fen("k7/8/8/7p/6P1/8/8/K7 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1225,7 +1133,6 @@ mod perft {
 
     #[test]
     fn perft_test92() {
-
         let startpos = Board::from_fen("k7/8/7p/8/8/6P1/8/K7 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -1238,7 +1145,6 @@ mod perft {
 
     #[test]
     fn perft_test93() {
-
         let startpos = Board::from_fen("k7/8/8/6p1/7P/8/8/K7 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1251,7 +1157,6 @@ mod perft {
 
     #[test]
     fn perft_test94() {
-
         let startpos = Board::from_fen("k7/8/6p1/8/8/7P/8/K7 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -1264,7 +1169,6 @@ mod perft {
 
     #[test]
     fn perft_test95() {
-
         let startpos = Board::from_fen("k7/8/8/3p4/4p3/8/8/7K w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 3);
@@ -1277,7 +1181,6 @@ mod perft {
 
     #[test]
     fn perft_test96() {
-
         let startpos = Board::from_fen("k7/8/3p4/8/8/4P3/8/7K w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -1290,7 +1193,6 @@ mod perft {
 
     #[test]
     fn perft_test97() {
-
         let startpos = Board::from_fen("7k/3p4/8/8/3P4/8/8/K7 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1303,7 +1205,6 @@ mod perft {
 
     #[test]
     fn perft_test98() {
-
         let startpos = Board::from_fen("7k/8/8/3p4/8/8/3P4/K7 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -1316,7 +1217,6 @@ mod perft {
 
     #[test]
     fn perft_test99() {
-
         let startpos = Board::from_fen("k7/8/8/7p/6P1/8/8/K7 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1329,7 +1229,6 @@ mod perft {
 
     #[test]
     fn perft_test100() {
-
         let startpos = Board::from_fen("k7/8/7p/8/8/6P1/8/K7 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -1342,7 +1241,6 @@ mod perft {
 
     #[test]
     fn perft_test101() {
-
         let startpos = Board::from_fen("k7/8/8/6p1/7P/8/8/K7 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1355,7 +1253,6 @@ mod perft {
 
     #[test]
     fn perft_test102() {
-
         let startpos = Board::from_fen("k7/8/6p1/8/8/7P/8/K7 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -1368,7 +1265,6 @@ mod perft {
 
     #[test]
     fn perft_test103() {
-
         let startpos = Board::from_fen("k7/8/8/3p4/4p3/8/8/7K b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1381,7 +1277,6 @@ mod perft {
 
     #[test]
     fn perft_test104() {
-
         let startpos = Board::from_fen("k7/8/3p4/8/8/4P3/8/7K b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -1394,7 +1289,6 @@ mod perft {
 
     #[test]
     fn perft_test105() {
-
         let startpos = Board::from_fen("7k/8/8/p7/1P6/8/8/7K w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1407,7 +1301,6 @@ mod perft {
 
     #[test]
     fn perft_test106() {
-
         let startpos = Board::from_fen("7k/8/p7/8/8/1P6/8/7K w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -1420,7 +1313,6 @@ mod perft {
 
     #[test]
     fn perft_test107() {
-
         let startpos = Board::from_fen("7k/8/8/1p6/P7/8/8/7K w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1433,7 +1325,6 @@ mod perft {
 
     #[test]
     fn perft_test108() {
-
         let startpos = Board::from_fen("7k/8/1p6/8/8/P7/8/7K w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -1446,7 +1337,6 @@ mod perft {
 
     #[test]
     fn perft_test109() {
-
         let startpos = Board::from_fen("k7/7p/8/8/8/8/6P1/K7 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1459,7 +1349,6 @@ mod perft {
 
     #[test]
     fn perft_test110() {
-
         let startpos = Board::from_fen("k7/6p1/8/8/8/8/7P/K7 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1472,7 +1361,6 @@ mod perft {
 
     #[test]
     fn perft_test111() {
-
         let startpos = Board::from_fen("3k4/3pp3/8/8/8/8/3PP3/3K4 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 7);
@@ -1485,7 +1373,6 @@ mod perft {
 
     #[test]
     fn perft_test112() {
-
         let startpos = Board::from_fen("7k/8/8/p7/1P6/8/8/7K b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1498,7 +1385,6 @@ mod perft {
 
     #[test]
     fn perft_test113() {
-
         let startpos = Board::from_fen("7k/8/p7/8/8/1P6/8/7K b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -1511,7 +1397,6 @@ mod perft {
 
     #[test]
     fn perft_test114() {
-
         let startpos = Board::from_fen("7k/8/8/1p6/P7/8/8/7K b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1524,7 +1409,6 @@ mod perft {
 
     #[test]
     fn perft_test115() {
-
         let startpos = Board::from_fen("7k/8/1p6/8/8/P7/8/7K b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 4);
@@ -1537,7 +1421,6 @@ mod perft {
 
     #[test]
     fn perft_test116() {
-
         let startpos = Board::from_fen("k7/7p/8/8/8/8/6P1/K7 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1550,7 +1433,6 @@ mod perft {
 
     #[test]
     fn perft_test117() {
-
         let startpos = Board::from_fen("k7/6p1/8/8/8/8/7P/K7 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 5);
@@ -1563,7 +1445,6 @@ mod perft {
 
     #[test]
     fn perft_test118() {
-
         let startpos = Board::from_fen("3k4/3pp3/8/8/8/8/3PP3/3K4 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 7);
@@ -1576,7 +1457,6 @@ mod perft {
 
     #[test]
     fn perft_test119() {
-
         let startpos = Board::from_fen("8/Pk6/8/8/8/8/6Kp/8 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 11);
@@ -1589,7 +1469,6 @@ mod perft {
 
     #[test]
     fn perft_test120() {
-
         let startpos = Board::from_fen("n1n5/1Pk5/8/8/8/8/5Kp1/5N1N w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 24);
@@ -1602,7 +1481,6 @@ mod perft {
 
     #[test]
     fn perft_test121() {
-
         let startpos = Board::from_fen("8/PPPk4/8/8/8/8/4Kppp/8 w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 18);
@@ -1615,7 +1493,6 @@ mod perft {
 
     #[test]
     fn perft_test122() {
-
         let startpos = Board::from_fen("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N w - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 24);
@@ -1628,7 +1505,6 @@ mod perft {
 
     #[test]
     fn perft_test123() {
-
         let startpos = Board::from_fen("8/Pk6/8/8/8/8/6Kp/8 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 11);
@@ -1641,7 +1517,6 @@ mod perft {
 
     #[test]
     fn perft_test124() {
-
         let startpos = Board::from_fen("n1n5/1Pk5/8/8/8/8/5Kp1/5N1N b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 24);
@@ -1654,7 +1529,6 @@ mod perft {
 
     #[test]
     fn perft_test125() {
-
         let startpos = Board::from_fen("8/PPPk4/8/8/8/8/4Kppp/8 b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 18);
@@ -1667,7 +1541,6 @@ mod perft {
 
     #[test]
     fn perft_test126() {
-
         let startpos = Board::from_fen("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1").unwrap();
 
         assert_eq!(perft(&startpos, 1), 24);

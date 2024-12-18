@@ -248,8 +248,8 @@ impl<'a> Search<'a> {
 
     #[allow(clippy::too_many_arguments)]
     fn search(
-        &mut self, board: &Board, mut depth: i32, mut lower_bound: i32, upper_bound: i32, output: &mut dyn output::Output, pv: &mut ArrayVec<[Move; 64]>, ply: i32,
-        keystack: &mut Vec<u64>,
+        &mut self, board: &Board, mut depth: i32, mut lower_bound: i32, upper_bound: i32, output: &mut dyn output::Output,
+        pv: &mut ArrayVec<[Move; 64]>, ply: i32, keystack: &mut Vec<u64>,
     ) -> i32 {
         // Emergency bailout
         if ply == 63 {
@@ -302,8 +302,16 @@ impl<'a> Search<'a> {
             keystack.push(board.hash());
             let board = board.make_null();
             let mut child_pv = ArrayVec::new();
-            let score =
-                -self.search(&board, depth - 1 - reduction, -upper_bound, -upper_bound + 1, output, &mut child_pv, ply + 1, keystack);
+            let score = -self.search(
+                &board,
+                depth - 1 - reduction,
+                -upper_bound,
+                -upper_bound + 1,
+                output,
+                &mut child_pv,
+                ply + 1,
+                keystack,
+            );
             keystack.pop();
 
             self.nullmove_attempts += 1;
@@ -344,17 +352,14 @@ impl<'a> Search<'a> {
             }
 
             match (a.is_capture(), b.is_capture()) {
-                (false, false) => {
-                    self.history[b.from.into_inner() as usize][b.dest.into_inner() as usize]
-                    .cmp(&self.history[a.from.into_inner() as usize][a.dest.into_inner() as usize])
-                }
+                (false, false) => self.history[b.from.into_inner() as usize][b.dest.into_inner() as usize]
+                    .cmp(&self.history[a.from.into_inner() as usize][a.dest.into_inner() as usize]),
                 (false, true) => Ordering::Greater,
                 (true, false) => Ordering::Less,
-                (true, true) => {
-                    board.piece_from_square(b.dest)
-                        .cmp(&board.piece_from_square(a.dest))
-                        .then_with(|| board.piece_from_square(a.from).cmp(&board.piece_from_square(b.from)))
-                }
+                (true, true) => board
+                    .piece_from_square(b.dest)
+                    .cmp(&board.piece_from_square(a.dest))
+                    .then_with(|| board.piece_from_square(a.from).cmp(&board.piece_from_square(b.from))),
             }
         });
 
@@ -389,17 +394,42 @@ impl<'a> Search<'a> {
             }
 
             if i > 0 {
-                score =
-                    -self.search(&child_board, depth - reduction, -lower_bound - 1, -lower_bound, output, &mut child_pv, ply + 1, keystack);
+                score = -self.search(
+                    &child_board,
+                    depth - reduction,
+                    -lower_bound - 1,
+                    -lower_bound,
+                    output,
+                    &mut child_pv,
+                    ply + 1,
+                    keystack,
+                );
             }
             if i > 0 && reduction > 1 && score > lower_bound {
                 reduction = 1;
-                score =
-                    -self.search(&child_board, depth - reduction, -lower_bound - 1, -lower_bound, output, &mut child_pv, ply + 1, keystack);
+                score = -self.search(
+                    &child_board,
+                    depth - reduction,
+                    -lower_bound - 1,
+                    -lower_bound,
+                    output,
+                    &mut child_pv,
+                    ply + 1,
+                    keystack,
+                );
             }
             if i == 0 || lower_bound != upper_bound - 1 && score > lower_bound {
                 reduction = 1;
-                score = -self.search(&child_board, depth - reduction, -upper_bound, -lower_bound, output, &mut child_pv, ply + 1, keystack);
+                score = -self.search(
+                    &child_board,
+                    depth - reduction,
+                    -upper_bound,
+                    -lower_bound,
+                    output,
+                    &mut child_pv,
+                    ply + 1,
+                    keystack,
+                );
             }
 
             keystack.pop();
@@ -445,7 +475,14 @@ impl<'a> Search<'a> {
                 if ply == 0 {
                     let now = Instant::now();
                     if now >= self.start + Duration::from_secs(2) {
-                        output.new_pv(board, depth + root_reduction, score, now.duration_since(self.start), self.nodes() + self.qnodes(), pv);
+                        output.new_pv(
+                            board,
+                            depth + root_reduction,
+                            score,
+                            now.duration_since(self.start),
+                            self.nodes() + self.qnodes(),
+                            pv,
+                        );
                     }
                 }
             }
@@ -457,19 +494,33 @@ impl<'a> Search<'a> {
             TtData {
                 m: best_move,
                 score: best_score as i16,
-                flags: if best_score >= upper_bound { TtFlags::Lower } else if raised_lower_bound { TtFlags::Exact } else { TtFlags::Upper },
+                flags: if best_score >= upper_bound {
+                    TtFlags::Lower
+                } else if raised_lower_bound {
+                    TtFlags::Exact
+                } else {
+                    TtFlags::Upper
+                },
                 depth: depth as u8,
             },
         );
 
-        if !board.in_check() && !best_move.unwrap().is_capture() && (raised_lower_bound || (best_score >= upper_bound && best_score >= eval_int) || (best_score <= lower_bound && best_score <= eval_int)) {
+        if !board.in_check()
+            && !best_move.unwrap().is_capture()
+            && (raised_lower_bound
+                || (best_score >= upper_bound && best_score >= eval_int)
+                || (best_score <= lower_bound && best_score <= eval_int))
+        {
             self.update_corrhist(board, depth, best_score - eval_int);
         }
 
         best_score
     }
 
-    pub fn search_root(&mut self, board: &Board, depth: i32, lower_bound: i32, upper_bound: i32, output: &mut dyn output::Output, pv: &mut ArrayVec<[Move; 64]>, keystack: &mut Vec<u64>) -> i32 {
+    pub fn search_root(
+        &mut self, board: &Board, depth: i32, lower_bound: i32, upper_bound: i32, output: &mut dyn output::Output,
+        pv: &mut ArrayVec<[Move; 64]>, keystack: &mut Vec<u64>,
+    ) -> i32 {
         self.search(board, depth, lower_bound, upper_bound, output, pv, 0, keystack)
     }
 

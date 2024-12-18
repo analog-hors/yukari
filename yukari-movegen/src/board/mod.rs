@@ -276,7 +276,8 @@ impl Board {
         match m.kind {
             MoveType::Promotion | MoveType::Normal | MoveType::DoublePush => {}
             MoveType::Capture | MoveType::CapturePromotion => {
-                let piece_index = b.data.piece_index(m.dest).unwrap_or_else(|| panic!("move {m} attempts to capture an empty square"));
+                let piece_index =
+                    b.data.piece_index(m.dest).unwrap_or_else(|| panic!("move {m} attempts to capture an empty square"));
                 b.data.remove_piece(piece_index, true);
             }
             MoveType::Castle => {

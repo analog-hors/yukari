@@ -42,7 +42,7 @@ impl TimeControl {
             TimeMode::MoveTime(millisecs) => {
                 let secs = (millisecs as f32 / 1000.0) - 0.02;
                 (secs, secs)
-            },
+            }
             TimeMode::Incremental { base: _, increment } => {
                 let remaining = self.remaining - 0.02;
                 let soft = remaining.min(remaining / 20.0 + increment / 2.0);

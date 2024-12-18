@@ -6,7 +6,11 @@ use std::{
 
 use tinyvec::ArrayVec;
 use yukari::{
-    self, allocate_tt, engine::{TimeControl, TimeMode}, is_repetition_draw, output::{self, Output}, Search, SearchParams, TtEntry
+    self, allocate_tt,
+    engine::{TimeControl, TimeMode},
+    is_repetition_draw,
+    output::{self, Output},
+    Search, SearchParams, TtEntry,
 };
 use yukari_movegen::{Board, Move, Piece, Square};
 
@@ -109,7 +113,8 @@ impl Yukari {
                 pv.set_len(0);
                 let lower_window = score - lower_bound;
                 let upper_window = score + upper_bound;
-                let output: &mut dyn output::Output = if human_output { &mut output::Human::start(&self.board) } else { &mut output::Xboard::start(&self.board) };
+                let output: &mut dyn output::Output =
+                    if human_output { &mut output::Human::start(&self.board) } else { &mut output::Xboard::start(&self.board) };
                 score = s.search_root(&self.board, depth, lower_window, upper_window, output, &mut pv, &mut self.keystack);
                 // If we have bailed out stop the loop
                 if Instant::now() >= hard_limit {
@@ -118,15 +123,42 @@ impl Yukari {
                 }
                 if score <= lower_window {
                     lower_bound *= 2;
-                    output.complete(&self.board, depth, score, Instant::now().duration_since(start), s.nodes() + s.qnodes(), &pv, false, false);
+                    output.complete(
+                        &self.board,
+                        depth,
+                        score,
+                        Instant::now().duration_since(start),
+                        s.nodes() + s.qnodes(),
+                        &pv,
+                        false,
+                        false,
+                    );
                     continue;
                 }
                 if score >= upper_window {
                     upper_bound *= 2;
-                    output.complete(&self.board, depth, score, Instant::now().duration_since(start), s.nodes() + s.qnodes(), &pv, false, true);
+                    output.complete(
+                        &self.board,
+                        depth,
+                        score,
+                        Instant::now().duration_since(start),
+                        s.nodes() + s.qnodes(),
+                        &pv,
+                        false,
+                        true,
+                    );
                     continue;
                 }
-                output.complete(&self.board, depth, score, Instant::now().duration_since(start), s.nodes() + s.qnodes(), &pv, true, false);
+                output.complete(
+                    &self.board,
+                    depth,
+                    score,
+                    Instant::now().duration_since(start),
+                    s.nodes() + s.qnodes(),
+                    &pv,
+                    true,
+                    false,
+                );
                 break;
             }
             // If we have bailed out stop the loop
@@ -219,12 +251,30 @@ impl Yukari {
                 score = s.search_root(&board, 11, lower_window, upper_window, &mut output, &mut pv, &mut keystack);
                 if score <= lower_window {
                     lower_bound *= 2;
-                    output.complete(&board, 11, score, Instant::now().duration_since(start), s.nodes() + s.qnodes(), &pv, false, false);
+                    output.complete(
+                        &board,
+                        11,
+                        score,
+                        Instant::now().duration_since(start),
+                        s.nodes() + s.qnodes(),
+                        &pv,
+                        false,
+                        false,
+                    );
                     continue;
                 }
                 if score >= upper_window {
                     upper_bound *= 2;
-                    output.complete(&board, 11, score, Instant::now().duration_since(start), s.nodes() + s.qnodes(), &pv, false, true);
+                    output.complete(
+                        &board,
+                        11,
+                        score,
+                        Instant::now().duration_since(start),
+                        s.nodes() + s.qnodes(),
+                        &pv,
+                        false,
+                        true,
+                    );
                     continue;
                 }
                 output.complete(&board, 11, score, Instant::now().duration_since(start), s.nodes() + s.qnodes(), &pv, true, false);
@@ -360,7 +410,7 @@ fn main() -> io::Result<()> {
             // the value is in centiseconds
             "time" => engine.set_remaining(f32::from_str(args).unwrap()),
             // TODO: Should we care? Right now we don't have any logic to handle opponent time seperate
-            "otim" => {},
+            "otim" => {}
             "sd" => engine.set_depth(i32::from_str(args).unwrap()),
             "go" => {
                 engine.mode = Mode::Normal;

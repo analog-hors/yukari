@@ -51,7 +51,10 @@ impl RawNetwork {
     }
 }
 
-static NNUE: Network = unsafe { std::mem::transmute::<[u8; std::mem::size_of::<RawNetwork>()], RawNetwork>(*include_bytes!("../../../yukari_1717143a.bin")).into_network() };
+static NNUE: Network = unsafe {
+    std::mem::transmute::<[u8; std::mem::size_of::<RawNetwork>()], RawNetwork>(*include_bytes!("../../../yukari_1717143a.bin"))
+        .into_network()
+};
 const _RAW_AND_PROCESSED_NETWORKS_ARE_SAME_SIZE: () = assert!(std::mem::size_of::<RawNetwork>() == std::mem::size_of::<Network>());
 
 /// This is the quantised format that yukari uses.
@@ -72,7 +75,7 @@ impl Network {
     /// calculated hidden layer (done efficiently during makemoves).
     pub fn evaluate(&self, us: &Accumulator, them: &Accumulator, output_bucket: usize) -> i32 {
         // Initialise output with bias.
-        let mut output = i32x64::splat(0); 
+        let mut output = i32x64::splat(0);
         let min = i16x64::splat(0);
         let max = i16x64::splat(QA);
 
