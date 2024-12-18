@@ -6,7 +6,7 @@ pub struct TimeControl {
     /// Current time remaining on our clock in seconds
     remaining: f32,
     /// Mode in which the clock is operating
-    mode: TimeMode,
+    pub mode: TimeMode,
     /// Number of moves made so far.
     move_number: u32,
 }

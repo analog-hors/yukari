@@ -31,6 +31,7 @@ pub struct Yukari {
     board: Board,
     tc: TimeControl,
     max_depth: Option<i32>,
+    nodes_per_second: Option<u32>,
     mode: Mode,
     keystack: Vec<u64>,
     corrhist: [[i32; 16384]; 2],
@@ -47,6 +48,7 @@ impl Yukari {
             // Time controls are uninitialized
             tc: TimeControl::new(TimeMode::MoveTime(5000)),
             max_depth: None,
+            nodes_per_second: None,
             // Normal move making is on by default
             mode: Mode::Normal,
             keystack: Vec::new(),
@@ -81,6 +83,11 @@ impl Yukari {
         self.max_depth = Some(depth);
     }
 
+    pub fn set_nodes_per_second(&mut self, nodes_per_second: i32) {
+        assert!(nodes_per_second > 0, "CPU time mode not supported");
+        self.nodes_per_second = Some(nodes_per_second as u32);
+    }
+
     /// Generates valid moves for current posiition then finds the attempted
     /// move in the list
     #[must_use]
@@ -99,7 +106,18 @@ impl Yukari {
         println!("# soft limit: {:03}s, hard limit: {:03}s", soft_limit, hard_limit);
         let soft_limit = start + Duration::from_secs_f32(soft_limit);
         let hard_limit = start + Duration::from_secs_f32(hard_limit);
-        let mut s = Search::new(start, Some(hard_limit), tt, &mut self.corrhist, &self.params);
+
+        // while I love xboard protocol for its ease of parsing, the way fixed-nodes searching is implemented is *bad*.
+        let (nodes, stop_after) = if let Some(nodes_per_second) = self.nodes_per_second {
+            let TimeMode::MoveTime(movetime) = self.tc.mode else {
+                panic!("nps is only supported in st mode");
+            };
+            (Some(movetime * nodes_per_second / 1000), None)
+        } else {
+            (None, Some(hard_limit))
+        };
+
+        let mut s = Search::new(start, stop_after, tt, &mut self.corrhist, &self.params);
         // clone another to use inside the loop
         // Use a seperate backing data to record the current move set
         let mut depth = 1;
@@ -117,7 +135,7 @@ impl Yukari {
                     if human_output { &mut output::Human::start(&self.board) } else { &mut output::Xboard::start(&self.board) };
                 score = s.search_root(&self.board, depth, lower_window, upper_window, output, &mut pv, &mut self.keystack);
                 // If we have bailed out stop the loop
-                if Instant::now() >= hard_limit {
+                if stop_after.is_some() && Instant::now() >= hard_limit {
                     output.abort();
                     break;
                 }
@@ -162,14 +180,19 @@ impl Yukari {
                 break;
             }
             // If we have bailed out stop the loop
-            if Instant::now() >= hard_limit {
+            if stop_after.is_some() && Instant::now() >= hard_limit {
                 break;
             }
             // If we have a pv that's not just empty from bailing out use that as our best moves
             best_pv.clone_from(&pv);
 
-            if Instant::now() >= soft_limit {
+            if stop_after.is_some() && Instant::now() >= soft_limit {
                 break;
+            }
+            if let Some(nodes) = nodes {
+                if s.nodes() + s.qnodes() >= nodes as u64 {
+                    break;
+                }
             }
             depth += 1;
         }
@@ -341,6 +364,8 @@ fn main() -> io::Result<()> {
                 println!("feature debug=1");
                 // We support hash table allocation sizing.
                 println!("feature memory=1");
+                // We support nps for fixed-nodes search.
+                println!("feature nps=1");
                 // Tunables!
                 /*
                 println!("feature option=\"RfpMarginBase -spin 0 0 100\"");
@@ -412,6 +437,7 @@ fn main() -> io::Result<()> {
             // TODO: Should we care? Right now we don't have any logic to handle opponent time seperate
             "otim" => {}
             "sd" => engine.set_depth(i32::from_str(args).unwrap()),
+            "nps" => engine.set_nodes_per_second(i32::from_str(args).unwrap()),
             "go" => {
                 engine.mode = Mode::Normal;
                 // When we get go we should make a move immediately
