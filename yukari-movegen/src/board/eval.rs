@@ -2,7 +2,7 @@ use std::simd::{cmp::SimdOrd, i16x64, i32x64, num::SimdInt};
 
 use crate::{Colour, Piece, Square};
 
-const HIDDEN_SIZE: usize = 256;
+const HIDDEN_SIZE: usize = 512;
 const OUTPUT_BUCKETS: usize = 8;
 const DIVISOR: usize = 32_usize.div_ceil(OUTPUT_BUCKETS);
 const SCALE: i32 = 400;
@@ -52,7 +52,7 @@ impl RawNetwork {
 }
 
 static NNUE: Network = unsafe {
-    std::mem::transmute::<[u8; std::mem::size_of::<RawNetwork>()], RawNetwork>(*include_bytes!("../../../yukari_a8895595.bin"))
+    std::mem::transmute::<[u8; std::mem::size_of::<RawNetwork>()], RawNetwork>(*include_bytes!("../../../yukari_38cb8ff4.bin"))
         .into_network()
 };
 const _RAW_AND_PROCESSED_NETWORKS_ARE_SAME_SIZE: () = assert!(std::mem::size_of::<RawNetwork>() == std::mem::size_of::<Network>());
