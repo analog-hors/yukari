@@ -196,7 +196,12 @@ impl Yukari {
             }
             depth += 1;
         }
-        println!("# QS: {:.3}%", (100 * s.qnodes()) as f64 / (s.nodes() as f64 + s.qnodes() as f64));
+        println!("# Avg AB cutoff index: {:.3}", s.beta_cutoff_index());
+        println!("# Avg QS cutoff index: {:.3}", s.q_beta_cutoff_index());
+        println!("# NMP success: {:.3}%", s.nullmove_success());
+        println!("# QS nodes: {} {:.3}%", s.qnodes(), (100 * s.qnodes()) as f64 / (s.nodes() as f64 + s.qnodes() as f64));
+        println!("# ZW AB nodes: {:.3}%", s.zw_nodes());
+        println!("# ZW QS nodes: {:.3}%", s.zw_qnodes());
         println!("# Branching factor: {:.3}", ((s.nodes() + s.qnodes()) as f64).powf(1.0 / f64::from(depth)));
         self.tc.increment_moves();
     }

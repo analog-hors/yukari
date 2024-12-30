@@ -95,8 +95,14 @@ pub fn allocate_tt(megabytes: usize) -> Vec<TtEntry> {
 pub struct Search<'a> {
     nodes: u64,
     qnodes: u64,
+    zw_nodes: u64,
+    zw_qnodes: u64,
     nullmove_attempts: u64,
     nullmove_success: u64,
+    beta_cutoff_index: u64,
+    beta_cutoffs: u64,
+    q_beta_cutoff_index: u64,
+    q_beta_cutoffs: u64,
     start: Instant,
     stop_after: Option<Instant>,
     history: [[i16; 64]; 64],
@@ -114,8 +120,14 @@ impl<'a> Search<'a> {
         Self {
             nodes: 0,
             qnodes: 0,
+            zw_nodes: 0,
+            zw_qnodes: 0,
             nullmove_attempts: 0,
             nullmove_success: 0,
+            beta_cutoff_index: 0,
+            beta_cutoffs: 0,
+            q_beta_cutoff_index: 0,
+            q_beta_cutoffs: 0,
             start,
             stop_after,
             history: [[0; 64]; 64],
@@ -166,8 +178,12 @@ impl<'a> Search<'a> {
         }
         alpha = alpha.max(best_score);
 
+        let mut index = 0;
         board.generate_captures_incremental(|m| {
             self.qnodes += 1;
+            if alpha == beta - 1 {
+                self.zw_qnodes += 1;
+            }
 
             let board = board.make(m);
             let mut child_pv = ArrayVec::new();
@@ -176,6 +192,8 @@ impl<'a> Search<'a> {
             best_score = best_score.max(score);
 
             if score >= beta {
+                self.q_beta_cutoff_index += index;
+                self.q_beta_cutoffs += 1;
                 return false;
             }
 
@@ -187,6 +205,8 @@ impl<'a> Search<'a> {
                     pv.push(m);
                 }
             }
+
+            index += 1;
 
             true
         });
@@ -368,6 +388,9 @@ impl<'a> Search<'a> {
 
         for (i, m) in moves.into_iter().enumerate() {
             self.nodes += 1;
+            if lower_bound == upper_bound - 1 {
+                self.zw_nodes += 1;
+            }
 
             let mut child_pv = ArrayVec::new();
             let child_board = board.make(m);
@@ -459,6 +482,9 @@ impl<'a> Search<'a> {
                     self.update_history(m, bonus);
                 }
 
+                self.beta_cutoff_index += i as u64;
+                self.beta_cutoffs += 1;
+
                 break;
             }
 
@@ -536,5 +562,25 @@ impl<'a> Search<'a> {
     #[must_use]
     pub fn nullmove_success(&self) -> f64 {
         100.0 * (self.nullmove_success as f64) / (self.nullmove_attempts as f64)
+    }
+
+    #[must_use]
+    pub fn beta_cutoff_index(&self) -> f64 {
+        (self.beta_cutoff_index as f64) / (self.beta_cutoffs as f64)
+    }
+
+    #[must_use]
+    pub fn q_beta_cutoff_index(&self) -> f64 {
+        (self.q_beta_cutoff_index as f64) / (self.q_beta_cutoffs as f64)
+    }
+
+    #[must_use]
+    pub fn zw_nodes(&self) -> f64 {
+        100.0 * (self.zw_nodes as f64) / (self.nodes as f64)
+    }
+
+    #[must_use]
+    pub fn zw_qnodes(&self) -> f64 {
+        100.0 * (self.zw_qnodes as f64) / (self.qnodes as f64)
     }
 }
