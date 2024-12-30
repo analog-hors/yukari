@@ -32,12 +32,17 @@ impl Output for Human {
     fn new_pv(&mut self, board: &Board, depth: i32, score: i32, time: Duration, nodes: u64, pv: &[Move]) {
         let nodes = if nodes > 1_000_000_000 { format!("{:>8}k", nodes / 1_000) } else { format!("{nodes:>9}") };
 
-        self.progress.println(format!(
-            "{depth:>2} {:>+7.2} {:>8.3} {nodes}\t{}",
-            ((score as f32) / 100.0),
-            time.as_secs_f32(),
-            board.pv_to_san(pv)
-        ));
+        let score = if score >= 9500 {
+            let score = ((10000 - score) as u32).div_ceil(2);
+            format!("+#{score}").green()
+        } else if score <= -9500 {
+            let score = ((10000 + score) as u32).div_ceil(2);
+            format!("-#{score}").red()
+        } else {
+            let score = (score as f32) / 100.0;
+            format!("{score:+7.2}").normal()
+        };
+        self.progress.println(format!("{depth:>2} {score:>9} {:>8.3} {nodes}\t{}", time.as_secs_f32(), board.pv_to_san(pv)));
     }
 
     fn new_move(&mut self, board: &Board, _depth: i32, _time: Duration, nodes: u64, m: Move) {
@@ -50,30 +55,22 @@ impl Output for Human {
     ) {
         self.progress.finish_and_clear();
         let nodes = if nodes > 1_000_000_000 { format!("{:>8}k", nodes / 1_000) } else { format!("{nodes:>9}") };
-        if success {
-            println!(
-                "{:>2} {:>+7.2} {:>8.3} {nodes}\t{}",
-                depth.to_string().bold(),
-                ((score as f32) / 100.0),
-                time.as_secs_f32(),
-                board.pv_to_san(pv)
-            );
-        } else if fail_high {
-            println!(
-                "{:>2} {:>+7.2} {:>8.3} {nodes}\t{}",
-                depth.to_string().green(),
-                ((score as f32) / 100.0),
-                time.as_secs_f32(),
-                board.pv_to_san(pv)
-            );
+        let score = if score >= 9500 {
+            let score = ((10000 - score) as u32).div_ceil(2);
+            format!("+#{score}").green()
+        } else if score <= -9500 {
+            let score = ((10000 + score) as u32).div_ceil(2);
+            format!("-#{score}").red()
         } else {
-            println!(
-                "{:>2} {:>+7.2} {:>8.3} {nodes}\t{}",
-                depth.to_string().red(),
-                ((score as f32) / 100.0),
-                time.as_secs_f32(),
-                board.pv_to_san(pv)
-            );
+            let score = (score as f32) / 100.0;
+            format!("{score:+7.2}").normal()
+        };
+        if success {
+            println!("{:>2} {score:>9} {:>8.3} {nodes}\t{}", depth.to_string().bold(), time.as_secs_f32(), board.pv_to_san(pv));
+        } else if fail_high {
+            println!("{:>2} {score:>9} {:>8.3} {nodes}\t{}", depth.to_string().green(), time.as_secs_f32(), board.pv_to_san(pv));
+        } else {
+            println!("{:>2} {score:>9} {:>8.3} {nodes}\t{}", depth.to_string().red(), time.as_secs_f32(), board.pv_to_san(pv));
         }
     }
 
@@ -96,7 +93,13 @@ impl Xboard {
 }
 
 impl Output for Xboard {
-    fn new_pv(&mut self, _board: &Board, depth: i32, score: i32, time: Duration, nodes: u64, pv: &[Move]) {
+    fn new_pv(&mut self, _board: &Board, depth: i32, mut score: i32, time: Duration, nodes: u64, pv: &[Move]) {
+        if score >= 9500 {
+            score = 100000 + (10000 - score) / 2;
+        }
+        if score <= -9500 {
+            score = -100000 - (-10000 - score) / 2;
+        }
         print!("{depth} {score} {} {nodes} ", time.as_millis() / 10);
         for m in pv {
             print!("{m} ");
@@ -110,16 +113,25 @@ impl Output for Xboard {
     }
 
     fn complete(
-        &mut self, board: &Board, depth: i32, score: i32, time: Duration, nodes: u64, pv: &[Move], success: bool, fail_high: bool,
+        &mut self, _board: &Board, depth: i32, mut score: i32, time: Duration, nodes: u64, pv: &[Move], success: bool,
+        fail_high: bool,
     ) {
+        if score >= 9500 {
+            score = 100000 + (10000 - score) / 2;
+        }
+        if score <= -9500 {
+            score = -100000 - (-10000 - score) / 2;
+        }
+        print!("{depth} {score} {} {nodes} ", time.as_millis() / 10);
+        for m in pv {
+            print!("{m} ");
+        }
         if success {
-            self.new_pv(board, depth, score, time, nodes, pv);
+            println!();
         } else if fail_high {
-            self.new_pv(board, depth, score, time, nodes, pv);
-            println!("++");
+            println!("!");
         } else {
-            self.new_pv(board, depth, score, time, nodes, pv);
-            println!("--");
+            println!("?");
         }
     }
 
