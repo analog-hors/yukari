@@ -394,6 +394,7 @@ fn main() -> io::Result<()> {
             // Parse our two time controls from the whole commmand lines
             // TODO: This is rather xboard specific
             "level" | "st" => engine.parse_tc(trimmed),
+            "name" | "rating" | "post" => {},
             // Allocate a hash table.
             "memory" => {
                 let megabytes = args.parse::<usize>().unwrap();
