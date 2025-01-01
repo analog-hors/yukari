@@ -408,7 +408,7 @@ impl<'a> Search<'a> {
 
             let mut reduction = 1;
 
-            if lower_bound == upper_bound - 1 && depth >= 3 && i >= 4 && !board.in_check() && !m.is_capture() {
+            if depth >= 3 && i >= 4 && !board.in_check() && !m.is_capture() {
                 let depth = (depth as f32).ln();
                 let i = (i as f32).ln();
                 reduction += (depth * i).mul_add(self.params.lmr_mul, self.params.lmr_base) as i32;
