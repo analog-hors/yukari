@@ -403,6 +403,11 @@ impl<'a> Search<'a> {
                 }
             }
 
+            let lmp_threshold = 1.max((3 * moves.len()) / 4);
+            if !board.in_check() && !m.is_capture() && depth == 1 && i >= lmp_threshold && best_score > -MATE_VALUE + 500 {
+                break;
+            }
+
             // Push the move to check for repetition draws
             keystack.push(board.hash());
 
