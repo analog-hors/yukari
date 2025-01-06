@@ -464,6 +464,15 @@ impl<'a> Search<'a> {
             if score > best_score {
                 best_move = Some(m);
                 best_score = score;
+
+                // Ensure we have *a move* even when failing high/low at root.
+                if ply == 0 {
+                    pv.set_len(0);
+                    pv.push(m);
+                    for m in child_pv {
+                        pv.push(m);
+                    }
+                }
             }
 
             if self.nodes.trailing_zeros() >= 10 {

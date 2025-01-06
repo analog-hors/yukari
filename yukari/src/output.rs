@@ -120,7 +120,7 @@ impl Output for Xboard {
             score = 100000 + (10000 - score) / 2;
         }
         if score <= -9500 {
-            score = -100000 - (-10000 - score) / 2;
+            score = -100000 + (-10000 - score) / 2;
         }
         print!("{depth} {score} {} {nodes} ", time.as_millis() / 10);
         for m in pv {
@@ -133,6 +133,70 @@ impl Output for Xboard {
         } else {
             println!("?");
         }
+    }
+
+    fn abort(&mut self) {
+        /* no-op */
+    }
+}
+
+pub struct Uci {
+    moves: u32,
+}
+
+impl Uci {
+    pub fn start(_board: &Board) -> Self {
+        Self { moves: 1 }
+    }
+}
+
+impl Output for Uci {
+    fn new_pv(&mut self, _board: &Board, depth: i32, score: i32, time: Duration, nodes: u64, pv: &[Move]) {
+        print!("info depth {depth} score ");
+        if score >= 9500 {
+            print!("mate {} ", 10000 - score);
+        } else if score <= -9500 {
+            print!("mate {} ", -10000 + score);
+        } else {
+            print!("cp {score} ");
+        }
+        print!("time {} nodes {nodes} pv ", time.as_millis());
+        for m in pv {
+            print!("{m} ");
+        }
+        println!();
+    }
+
+    fn new_move(&mut self, _board: &Board, depth: i32, time: Duration, nodes: u64, m: Move) {
+        println!("info depth {depth} time {} nodes {nodes} currmove {m} currmovenumber {}", time.as_millis(), self.moves);
+        self.moves += 1;
+    }
+
+    fn complete(
+        &mut self, _board: &Board, depth: i32, score: i32, time: Duration, nodes: u64, pv: &[Move], success: bool, fail_high: bool,
+    ) {
+        print!("info depth {depth} score ");
+        if score >= 9500 {
+            print!("mate {} ", 10000 - score);
+        } else if score <= -9500 {
+            print!("mate {} ", -10000 + score);
+        } else {
+            print!("cp {score} ");
+        }
+        if success {
+        } else if fail_high {
+            print!("lowerbound ");
+        } else {
+            print!("upperbound ");
+        }
+        print!("time {} nodes {nodes}", time.as_millis());
+        if !pv.is_empty() {
+            print!(" pv ");
+            for m in pv {
+                print!("{m} ");
+            }
+        }
+        println!();
     }
 
     fn abort(&mut self) {

@@ -99,11 +99,6 @@ impl FromStr for TimeMode {
         let cmd = parts.next().unwrap();
         let args = parts.collect::<Vec<_>>();
         match cmd {
-            "st" => {
-                // Parse out seconds per move
-                let secs = f32::from_str(args[0]).map_err(|_| ())?;
-                Ok(Self::MoveTime((secs * 1000.0) as u32))
-            }
             "level" => {
                 // Figure out if the mode is incremental or classical
                 let mps = u32::from_str(args[0]).map_err(|_| ())?;
@@ -125,6 +120,25 @@ impl FromStr for TimeMode {
 }
 
 impl TimeMode {
+    pub fn fixed_time_per_move(&mut self, secs: f32) {
+        *self = Self::MoveTime((secs * 1000.0) as u32);
+    }
+
+    pub fn base(&mut self, base_time: u32) {
+        println!("info debug setting base time to {}s", (base_time as f32) / 1000.0);
+        match self {
+            Self::Incremental { base, increment: _ } => *base = (base_time as f32) / 1000.0,
+            _ => *self = Self::Incremental { base: (base_time as f32) / 1000.0, increment: 0.0 },
+        }
+    }
+
+    pub fn increment(&mut self, inc: u32) {
+        match self {
+            Self::Incremental { base: _, increment } => *increment = (inc as f32) / 1000.0,
+            _ => *self = Self::Incremental { base: 0.0, increment: (inc as f32) / 1000.0 },
+        }
+    }
+
     /// Parses a time that might be in min or min:sec format
     fn parse_xboard_level(s: &str) -> Option<f32> {
         if let Some(sep) = s.find(':') {
