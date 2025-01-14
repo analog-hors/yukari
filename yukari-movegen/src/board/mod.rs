@@ -677,70 +677,67 @@ impl Board {
             f(Move::new(from, dest, kind, promotion_piece))
         };
 
-        let mut find_attackers =
-            |dest: Square, victim_type: Piece| -> bool {
-                let promotion_pieces = [Piece::Queen, Piece::Knight, Piece::Rook, Piece::Bishop];
-                let attacks = self.data.attacks_to(dest, self.side);
-                for capturer in attacks & self.data.pawns() {
-                    let from = self.data.square_of_piece(capturer);
-                    if Rank::from(dest).is_relative_eighth(self.side) {
-                        for piece in &promotion_pieces {
-                            if !try_move(from, dest, MoveType::CapturePromotion, Some(*piece), &pininfo) {
-                                return false;
-                            }
+        let mut find_attackers = |dest: Square, victim_type: Piece| -> bool {
+            let promotion_pieces = [Piece::Queen, Piece::Knight, Piece::Rook, Piece::Bishop];
+            let attacks = self.data.attacks_to(dest, self.side);
+            for capturer in attacks & self.data.pawns() {
+                let from = self.data.square_of_piece(capturer);
+                if Rank::from(dest).is_relative_eighth(self.side) {
+                    for piece in &promotion_pieces {
+                        if !try_move(from, dest, MoveType::CapturePromotion, Some(*piece), &pininfo) {
+                            return false;
                         }
-                    } else if !try_move(from, dest, MoveType::Capture, None, &pininfo) {
-                        return false;
                     }
+                } else if !try_move(from, dest, MoveType::Capture, None, &pininfo) {
+                    return false;
                 }
-                for capturer in attacks & (self.data.knights() | self.data.bishops()) {
-                    let from = self.data.square_of_piece(capturer);
-                    if victim_type < Piece::Bishop
-                        && self.static_exchange_evaluation(Move::new(from, dest, MoveType::Capture, None)) < 0
-                    {
-                        // This is a bad capture.
-                        continue;
-                    }
-                    if !try_move(from, dest, MoveType::Capture, None, &pininfo) {
-                        return false;
-                    }
+            }
+            for capturer in attacks & (self.data.knights() | self.data.bishops()) {
+                let from = self.data.square_of_piece(capturer);
+                if victim_type < Piece::Bishop
+                    && self.static_exchange_evaluation(Move::new(from, dest, MoveType::Capture, None)) < 0
+                {
+                    // This is a bad capture.
+                    continue;
                 }
-                for capturer in attacks & self.data.rooks() {
-                    let from = self.data.square_of_piece(capturer);
-                    if victim_type < Piece::Rook
-                        && self.static_exchange_evaluation(Move::new(from, dest, MoveType::Capture, None)) < 0
-                    {
-                        // This is a bad capture.
-                        continue;
-                    }
-                    if !try_move(from, dest, MoveType::Capture, None, &pininfo) {
-                        return false;
-                    }
+                if !try_move(from, dest, MoveType::Capture, None, &pininfo) {
+                    return false;
                 }
-                for capturer in attacks & self.data.queens() {
-                    let from = self.data.square_of_piece(capturer);
-                    if victim_type < Piece::Queen
-                        && self.static_exchange_evaluation(Move::new(from, dest, MoveType::Capture, None)) < 0
-                    {
-                        // This is a bad capture.
-                        continue;
-                    }
-                    if !try_move(from, dest, MoveType::Capture, None, &pininfo) {
-                        return false;
-                    }
+            }
+            for capturer in attacks & self.data.rooks() {
+                let from = self.data.square_of_piece(capturer);
+                if victim_type < Piece::Rook && self.static_exchange_evaluation(Move::new(from, dest, MoveType::Capture, None)) < 0
+                {
+                    // This is a bad capture.
+                    continue;
                 }
-                for capturer in attacks & self.data.kings() {
-                    let from = self.data.square_of_piece(capturer);
-                    if !self.data.attacks_to(dest, !self.side).empty() {
-                        // Moving into check is illegal.
-                        continue;
-                    }
-                    if !try_move(from, dest, MoveType::Capture, None, &pininfo) {
-                        return false;
-                    }
+                if !try_move(from, dest, MoveType::Capture, None, &pininfo) {
+                    return false;
                 }
-                true
-            };
+            }
+            for capturer in attacks & self.data.queens() {
+                let from = self.data.square_of_piece(capturer);
+                if victim_type < Piece::Queen && self.static_exchange_evaluation(Move::new(from, dest, MoveType::Capture, None)) < 0
+                {
+                    // This is a bad capture.
+                    continue;
+                }
+                if !try_move(from, dest, MoveType::Capture, None, &pininfo) {
+                    return false;
+                }
+            }
+            for capturer in attacks & self.data.kings() {
+                let from = self.data.square_of_piece(capturer);
+                if !self.data.attacks_to(dest, !self.side).empty() {
+                    // Moving into check is illegal.
+                    continue;
+                }
+                if !try_move(from, dest, MoveType::Capture, None, &pininfo) {
+                    return false;
+                }
+            }
+            true
+        };
 
         for victim in self.data.pieces_of_colour(!self.side) & self.data.queens() {
             if !find_attackers(self.square_of_piece(victim), Piece::Queen) {
@@ -889,9 +886,9 @@ impl Board {
         };
 
         let next_piece = |bitlist: Bitlist,
-                              our_attacks: &mut Bitlist,
-                              their_attacks: &mut Bitlist,
-                              moved_pieces: &mut Bitlist|
+                          our_attacks: &mut Bitlist,
+                          their_attacks: &mut Bitlist,
+                          moved_pieces: &mut Bitlist|
          -> Option<Piece> {
             let bitlist = bitlist & moved_pieces.invert();
             if let Some(piece) = (bitlist & self.data.pawns()).peek() {
@@ -1201,7 +1198,7 @@ mod tests {
     #[cfg(test)]
     fn find_move(board: &Board, cmd: &str) -> crate::Move {
         use std::str::FromStr;
-    
+
         let from = crate::Square::from_str(&cmd[..2]).unwrap();
         let dest = crate::Square::from_str(&cmd[2..4]).unwrap();
         let prom = if cmd.len() == 5 {

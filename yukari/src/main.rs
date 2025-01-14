@@ -30,7 +30,7 @@ enum Mode {
 pub enum Protocol {
     Human,
     Xboard,
-    Uci
+    Uci,
 }
 
 /// The main engine state
@@ -523,7 +523,7 @@ fn main() -> io::Result<()> {
                     "HistPenaltyBase" => engine.params.hist_pen_base = value,
                     "HistPenaltyMul" => engine.params.hist_pen_mul = value,
                     "Hash" => tt = allocate_tt(value as usize), // UCIism. grumble grumble.
-                    "Threads" => (),                                       // UCIism, grumble grumble.
+                    "Threads" => (),                            // UCIism, grumble grumble.
                     _ => (),
                 }
             }
@@ -545,7 +545,7 @@ fn main() -> io::Result<()> {
                     "HistPenaltyBase" => engine.params.hist_pen_base = value,
                     "HistPenaltyMul" => engine.params.hist_pen_mul = value,
                     "Hash" => tt = allocate_tt(value as usize), // UCIism. grumble grumble.
-                    "Threads" => (),                                       // UCIism, grumble grumble.
+                    "Threads" => (),                            // UCIism, grumble grumble.
                     _ => (),
                 }
             }
@@ -588,33 +588,33 @@ fn main() -> io::Result<()> {
                             if engine.board.side() == Colour::White {
                                 engine.set_remaining((u32::from_str(cmd).unwrap() / 10) as f32);
                             }
-                        },
+                        }
                         "btime" => {
                             (cmd, args) = args.split_once(" ").unwrap_or((args, ""));
                             if engine.board.side() == Colour::Black {
                                 engine.set_remaining((u32::from_str(cmd).unwrap() / 10) as f32);
                             }
-                        },
+                        }
                         "winc" => {
                             (cmd, args) = args.split_once(" ").unwrap_or((args, ""));
                             if engine.board.side() == Colour::White {
                                 engine.tc.mode.increment(u32::from_str(cmd).unwrap());
                             }
-                        },
+                        }
                         "binc" => {
                             (cmd, args) = args.split_once(" ").unwrap_or((args, ""));
                             if engine.board.side() == Colour::Black {
                                 engine.tc.mode.increment(u32::from_str(cmd).unwrap());
                             }
-                        },
+                        }
                         "movetime" => {
                             (cmd, args) = args.split_once(" ").unwrap_or((args, ""));
                             engine.tc.mode.fixed_time_per_move((u32::from_str(cmd).unwrap() as f32) / 1000.0);
-                        },
+                        }
                         "depth" => {
                             (cmd, args) = args.split_once(" ").unwrap_or((args, ""));
                             engine.max_depth = Some(i32::from_str(cmd).unwrap());
-                        },
+                        }
                         "nodes" => {
                             (cmd, args) = args.split_once(" ").unwrap_or((args, ""));
                             engine.nodes_per_second = Some(u32::from_str(cmd).unwrap());
@@ -623,7 +623,7 @@ fn main() -> io::Result<()> {
                         "mate" => {
                             (_, args) = args.split_once(" ").unwrap_or((args, ""));
                         }
-                        "infinite" | "ponder" => {},
+                        "infinite" | "ponder" => {}
                         _ => {} // ignore anything we don't understand.
                     }
                 }
