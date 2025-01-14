@@ -8,6 +8,7 @@ use yukari_movegen::{Board, Move};
 pub trait Output {
     fn new_pv(&mut self, board: &Board, depth: i32, score: i32, time: Duration, nodes: u64, pv: &[Move]);
     fn new_move(&mut self, board: &Board, depth: i32, time: Duration, nodes: u64, m: Move);
+    #[allow(clippy::too_many_arguments)]
     fn complete(
         &mut self, board: &Board, depth: i32, score: i32, time: Duration, nodes: u64, pv: &[Move], success: bool, fail_high: bool,
     );
@@ -100,9 +101,9 @@ impl Output for Xboard {
         if score <= -9500 {
             score = -100000 - (-10000 - score) / 2;
         }
-        print!("{depth} {score} {} {nodes} ", time.as_millis() / 10);
+        print!("{depth} {score} {} {nodes}", time.as_millis() / 10);
         for m in pv {
-            print!("{m} ");
+            print!(" {m}");
         }
         println!();
     }
@@ -122,9 +123,9 @@ impl Output for Xboard {
         if score <= -9500 {
             score = -100000 + (-10000 - score) / 2;
         }
-        print!("{depth} {score} {} {nodes} ", time.as_millis() / 10);
+        print!("{depth} {score} {} {nodes}", time.as_millis() / 10);
         for m in pv {
-            print!("{m} ");
+            print!(" {m}");
         }
         if success {
             println!();
@@ -160,9 +161,9 @@ impl Output for Uci {
         } else {
             print!("cp {score} ");
         }
-        print!("time {} nodes {nodes} pv ", time.as_millis());
+        print!("time {} nodes {nodes} pv", time.as_millis());
         for m in pv {
-            print!("{m} ");
+            print!(" {m}");
         }
         println!();
     }
@@ -191,9 +192,9 @@ impl Output for Uci {
         }
         print!("time {} nodes {nodes}", time.as_millis());
         if !pv.is_empty() {
-            print!(" pv ");
+            print!(" pv");
             for m in pv {
-                print!("{m} ");
+                print!(" {m}");
             }
         }
         println!();

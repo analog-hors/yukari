@@ -663,10 +663,6 @@ impl Board {
 
         let pininfo = pins::PinInfo::discover(self);
 
-        let mut minor_mask = Bitlist::new();
-        let mut rook_mask = Bitlist::new();
-        let mut queen_mask = Bitlist::new();
-
         let mut try_move = |from: Square, dest: Square, kind: MoveType, promotion_piece: Option<Piece>, pininfo: &pins::PinInfo| {
             if let Some(dir) = pininfo.pins[self.data.piece_index(from).unwrap().into_inner() as usize] {
                 if let Some(move_dir) = from.direction(dest) {
@@ -682,7 +678,7 @@ impl Board {
         };
 
         let mut find_attackers =
-            |dest: Square, victim_type: Piece, minor_mask: Bitlist, rook_mask: Bitlist, queen_mask: Bitlist| -> bool {
+            |dest: Square, victim_type: Piece| -> bool {
                 let promotion_pieces = [Piece::Queen, Piece::Knight, Piece::Rook, Piece::Bishop];
                 let attacks = self.data.attacks_to(dest, self.side);
                 for capturer in attacks & self.data.pawns() {
@@ -746,36 +742,26 @@ impl Board {
                 true
             };
 
-        minor_mask |= self.data.pieces_of_colour(!self.side) & self.data.pawns();
-        rook_mask |= self.data.pieces_of_colour(!self.side) & self.data.pawns();
-        queen_mask |= self.data.pieces_of_colour(!self.side) & self.data.pawns();
-
         for victim in self.data.pieces_of_colour(!self.side) & self.data.queens() {
-            if !find_attackers(self.square_of_piece(victim), Piece::Queen, minor_mask, rook_mask, queen_mask) {
+            if !find_attackers(self.square_of_piece(victim), Piece::Queen) {
                 return;
             }
         }
-
-        queen_mask |= self.data.pieces_of_colour(!self.side) & (self.data.knights() | self.data.bishops());
 
         for victim in self.data.pieces_of_colour(!self.side) & self.data.rooks() {
-            if !find_attackers(self.square_of_piece(victim), Piece::Rook, minor_mask, rook_mask, queen_mask) {
+            if !find_attackers(self.square_of_piece(victim), Piece::Rook) {
                 return;
             }
         }
-
-        queen_mask |= self.data.pieces_of_colour(!self.side) & self.data.rooks();
 
         for victim in self.data.pieces_of_colour(!self.side) & (self.data.knights() | self.data.bishops()) {
-            if !find_attackers(self.square_of_piece(victim), Piece::Bishop, minor_mask, rook_mask, queen_mask) {
+            if !find_attackers(self.square_of_piece(victim), Piece::Bishop) {
                 return;
             }
         }
 
-        rook_mask |= self.data.pieces_of_colour(!self.side) & (self.data.knights() | self.data.bishops());
-
         for victim in self.data.pieces_of_colour(!self.side) & self.data.pawns() {
-            if !find_attackers(self.square_of_piece(victim), Piece::Pawn, minor_mask, rook_mask, queen_mask) {
+            if !find_attackers(self.square_of_piece(victim), Piece::Pawn) {
                 return;
             }
         }
@@ -861,7 +847,7 @@ impl Board {
     }
 
     #[must_use]
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines, clippy::missing_panics_doc)]
     pub fn static_exchange_evaluation(&self, m: Move) -> i32 {
         let mut our_attacks = self.data.attacks_to(m.dest, self.side());
         let mut their_attacks = self.data.attacks_to(m.dest, !self.side());
@@ -902,7 +888,7 @@ impl Board {
             }
         };
 
-        let mut next_piece = |bitlist: Bitlist,
+        let next_piece = |bitlist: Bitlist,
                               our_attacks: &mut Bitlist,
                               their_attacks: &mut Bitlist,
                               moved_pieces: &mut Bitlist|
@@ -1209,31 +1195,27 @@ impl Board {
 } */
 
 mod tests {
-    use std::str::FromStr;
+    #[cfg(test)]
+    use crate::Board;
 
-    use tinyvec::ArrayVec;
-
-    use super::{Board, Zobrist};
-    use crate::{
-        square::{File, Rank},
-        Move, MoveType, Piece, Square,
-    };
-
-    fn find_move(board: &Board, cmd: &str) -> Move {
-        let from = Square::from_str(&cmd[..2]).unwrap();
-        let dest = Square::from_str(&cmd[2..4]).unwrap();
+    #[cfg(test)]
+    fn find_move(board: &Board, cmd: &str) -> crate::Move {
+        use std::str::FromStr;
+    
+        let from = crate::Square::from_str(&cmd[..2]).unwrap();
+        let dest = crate::Square::from_str(&cmd[2..4]).unwrap();
         let prom = if cmd.len() == 5 {
             match cmd.chars().nth(4).unwrap() {
-                'n' => Some(Piece::Knight),
-                'b' => Some(Piece::Bishop),
-                'r' => Some(Piece::Rook),
-                'q' => Some(Piece::Queen),
+                'n' => Some(crate::Piece::Knight),
+                'b' => Some(crate::Piece::Bishop),
+                'r' => Some(crate::Piece::Rook),
+                'q' => Some(crate::Piece::Queen),
                 _ => None,
             }
         } else {
             None
         };
-        let mut moves = ArrayVec::new();
+        let mut moves = tinyvec::ArrayVec::new();
         board.generate(&mut moves);
         moves.into_iter().find(|&m| m.from == from && m.dest == dest && m.prom == prom).unwrap()
     }

@@ -3,6 +3,8 @@ name = "yukari"
 version = "2024.12.1"
 authors = ["Yukari Chess <yukarichess@gmail.com>"]
 edition = "2021"
+license-file = "../LICENSE.md"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,6 +12,6 @@ edition = "2021"
 yukari-movegen = { path = "../yukari-movegen" }
 tinyvec = "1.5"
 rayon = "1.10.0"
-colored = "2.1.0"
+colored = "3.0.0"
 indicatif = "0.17.9"
 

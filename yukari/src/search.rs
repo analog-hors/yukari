@@ -556,6 +556,7 @@ impl<'a> Search<'a> {
         best_score
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn search_root(
         &mut self, board: &Board, depth: i32, lower_bound: i32, upper_bound: i32, output: &mut dyn output::Output,
         pv: &mut ArrayVec<[Move; 64]>, keystack: &mut Vec<u64>,
