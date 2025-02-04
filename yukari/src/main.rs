@@ -401,7 +401,7 @@ fn main() -> io::Result<()> {
             }
             "uci" => {
                 protocol = Protocol::Uci;
-                println!("id name Yukari 2024.12.1");
+                println!("id name Yukari 2025.2.4");
                 println!("id author Hannah Ravensloft");
                 println!("option name Hash type spin default 16 min 1 max 8192");
                 println!("option name Threads type spin default 1 min 1 max 1");
@@ -412,7 +412,7 @@ fn main() -> io::Result<()> {
                 // v1 won't send this anyway and we need v2
                 assert_eq!(args, "2");
                 // Do features individually
-                println!("feature myname=\"Yukari 2024.12.1\"");
+                println!("feature myname=\"Yukari 2025.2.4\"");
                 // No signals support
                 println!("feature sigint=0 sigterm=0");
                 // Ping feature helps with race conditions
@@ -436,7 +436,7 @@ fn main() -> io::Result<()> {
                 println!("feature option=\"HistPenaltyBase -spin 250 0 500\"");
                 println!("feature option=\"HistPenaltyMul -spin 300 0 600\"");
                 */
-                println!("feature option=\"Hash -spin 16 1 8092\"");
+                println!("feature option=\"Hash -spin 16 1 8192\"");
                 println!("feature option=\"Threads -spin 1 1 1\"");
                 // Communicate that feature reporting is done
                 println!("feature done=1");
@@ -522,8 +522,8 @@ fn main() -> io::Result<()> {
                     "HistBonusMul" => engine.params.hist_bonus_mul = value,
                     "HistPenaltyBase" => engine.params.hist_pen_base = value,
                     "HistPenaltyMul" => engine.params.hist_pen_mul = value,
-                    "Hash" => tt = allocate_tt(value as usize), // UCIism. grumble grumble.
-                    "Threads" => (),                            // UCIism, grumble grumble.
+                    "Hash" if value >= 1 => tt = allocate_tt(value as usize), // UCIism. grumble grumble.
+                    "Threads" => (),                                                     // UCIism, grumble grumble.
                     _ => (),
                 }
             }
@@ -544,8 +544,8 @@ fn main() -> io::Result<()> {
                     "HistBonusMul" => engine.params.hist_bonus_mul = value,
                     "HistPenaltyBase" => engine.params.hist_pen_base = value,
                     "HistPenaltyMul" => engine.params.hist_pen_mul = value,
-                    "Hash" => tt = allocate_tt(value as usize), // UCIism. grumble grumble.
-                    "Threads" => (),                            // UCIism, grumble grumble.
+                    "Hash" if value >= 1 => tt = allocate_tt(value as usize), // UCIism. grumble grumble.
+                    "Threads" => (),                                                     // UCIism, grumble grumble.
                     _ => (),
                 }
             }
