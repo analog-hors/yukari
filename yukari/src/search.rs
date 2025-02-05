@@ -275,6 +275,16 @@ impl<'a> Search<'a> {
             return self.eval_with_corrhist(board, board.eval(board.side()));
         }
 
+        // Draw by insufficient material
+        if board.insufficient_material() {
+            return 0;
+        }
+
+        // Is this a repetition draw?
+        if is_repetition_draw(keystack, board.hash()) {
+            return 0;
+        }
+
         let mut root_reduction = 0;
 
         // Check extension
@@ -341,9 +351,7 @@ impl<'a> Search<'a> {
             }
         }
 
-        let moves: [Move; 256] = [Move::default(); 256];
-        let mut moves = ArrayVec::from(moves);
-        moves.set_len(0);
+        let mut moves = ArrayVec::new();
         board.generate(&mut moves);
 
         // Is this checkmate or stalemate?
@@ -352,11 +360,6 @@ impl<'a> Search<'a> {
             if board.in_check() {
                 return -MATE_VALUE + ply;
             }
-            return 0;
-        }
-
-        // Is this a repetition draw?
-        if is_repetition_draw(keystack, board.hash()) {
             return 0;
         }
 
@@ -386,6 +389,9 @@ impl<'a> Search<'a> {
         let mut best_score = i32::MIN;
         let mut raised_lower_bound = false;
 
+        // Push the move to check for repetition draws
+        keystack.push(board.hash());
+
         for (i, m) in moves.into_iter().enumerate() {
             self.nodes += 1;
             if lower_bound == upper_bound - 1 {
@@ -407,9 +413,6 @@ impl<'a> Search<'a> {
             if !board.in_check() && !m.is_capture() && depth == 1 && i >= lmp_threshold && best_score > -MATE_VALUE + 500 {
                 break;
             }
-
-            // Push the move to check for repetition draws
-            keystack.push(board.hash());
 
             let mut reduction = 1;
 
@@ -459,8 +462,6 @@ impl<'a> Search<'a> {
                 );
             }
 
-            keystack.pop();
-
             if score > best_score {
                 best_move = Some(m);
                 best_score = score;
@@ -478,6 +479,7 @@ impl<'a> Search<'a> {
             if self.nodes.trailing_zeros() >= 10 {
                 if let Some(time) = self.stop_after {
                     if Instant::now() >= time {
+                        keystack.pop();
                         return best_score;
                     }
                 }
@@ -526,6 +528,8 @@ impl<'a> Search<'a> {
                 }
             }
         }
+
+        keystack.pop();
 
         self.write_tt(
             board,

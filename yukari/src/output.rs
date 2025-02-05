@@ -204,3 +204,25 @@ impl Output for Uci {
         /* no-op */
     }
 }
+
+pub struct NoOp;
+
+impl Output for NoOp {
+    fn new_pv(&mut self, board: &Board, depth: i32, score: i32, time: Duration, nodes: u64, pv: &[Move]) {
+        /* no-op */
+    }
+
+    fn new_move(&mut self, board: &Board, depth: i32, time: Duration, nodes: u64, m: Move) {
+        /* no-op */
+    }
+
+    fn complete(
+        &mut self, board: &Board, depth: i32, score: i32, time: Duration, nodes: u64, pv: &[Move], success: bool, fail_high: bool,
+    ) {
+        /* no-op */
+    }
+
+    fn abort(&mut self) {
+        /* no-op */
+    }
+}

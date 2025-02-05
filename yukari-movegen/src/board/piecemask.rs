@@ -21,26 +21,32 @@ impl Piecemask {
         self.empty().invert()
     }
 
+    /// Return a bitlist of all pawns.
     pub const fn pawns(&self) -> Bitlist {
         self.pbq.and(self.nbk.invert()).and(self.rqk.invert())
     }
 
+    /// Return a bitlist of all knights.
     pub const fn knights(&self) -> Bitlist {
         self.pbq.invert().and(self.nbk).and(self.rqk.invert())
     }
 
+    /// Return a bitlist of all bishops.
     pub const fn bishops(&self) -> Bitlist {
         self.pbq.and(self.nbk)
     }
 
+    /// Return a bitlist of all rooks.
     pub const fn rooks(&self) -> Bitlist {
         self.pbq.invert().and(self.nbk.invert()).and(self.rqk)
     }
 
+    /// Return a bitlist of all queens.
     pub const fn queens(&self) -> Bitlist {
         self.pbq.and(self.rqk)
     }
 
+    /// Return a bitlist of all kings.
     pub const fn kings(&self) -> Bitlist {
         self.nbk.and(self.rqk)
     }

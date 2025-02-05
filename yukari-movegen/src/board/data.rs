@@ -38,6 +38,16 @@ impl BoardData {
         }
     }
 
+    /// Borrow the internal attack table.
+    pub const fn attacks(&self) -> &BitlistArray {
+        &self.bitlist
+    }
+
+    /// Borrow the internal piece mask.
+    pub const fn piecemask(&self) -> &Piecemask {
+        &self.piecemask
+    }
+
     /// Return the piece index on a square, if any.
     pub fn piece_index(&self, square: Square) -> Option<PieceIndex> {
         self.index[square]
@@ -58,49 +68,51 @@ impl BoardData {
         self.index[square].is_some()
     }
 
-    /// Return a bitlist of all pawns.
+    #[deprecated = ".pawns() -> .piecemask().pawns()"]
     pub const fn pawns(&self) -> Bitlist {
         self.piecemask.pawns()
     }
 
-    /// Return a bitlist of all knights.
+    #[deprecated = ".knights() -> .piecemask().knights()"]
     pub const fn knights(&self) -> Bitlist {
         self.piecemask.knights()
     }
 
-    /// Return a bitlist of all bishops.
+    #[deprecated = ".bishops() -> .piecemask().bishops()"]
     pub const fn bishops(&self) -> Bitlist {
         self.piecemask.bishops()
     }
-
-    /// Return a bitlist of all rooks.
+    
+    #[deprecated = ".rooks() -> .piecemask().rooks()"]
     pub const fn rooks(&self) -> Bitlist {
         self.piecemask.rooks()
     }
 
-    /// Return a bitlist of all queens.
+    #[deprecated = ".queens() -> .piecemask().queens()"]
     pub const fn queens(&self) -> Bitlist {
         self.piecemask.queens()
     }
 
-    /// Return a bitlist of all kings.
+    #[deprecated = ".kings() -> .piecemask().kings()"]
     pub const fn kings(&self) -> Bitlist {
         self.piecemask.kings()
     }
 
     /// Return a bitlist of all pieces.
+    #[deprecated = ".pieces() -> .piecemask().bishops()"]
     pub const fn pieces(&self) -> Bitlist {
         self.piecemask.occupied()
     }
 
     /// Return a bitlist of all pieces of a given colour.
+    #[deprecated = ".pieces_of_colour(colour) -> .piecemask().pieces_of_colour(colour)"]
     pub const fn pieces_of_colour(&self, colour: Colour) -> Bitlist {
         self.piecemask.pieces_of_colour(colour)
     }
 
     /// Return the square of the king of a given colour.
     pub fn king_square(&self, colour: Colour) -> Square {
-        let king_index = unsafe { (self.kings() & Bitlist::mask_from_colour(colour)).peek_nonzero() };
+        let king_index = unsafe { (self.piecemask.kings() & Bitlist::mask_from_colour(colour)).peek_nonzero() };
         self.square_of_piece(king_index)
     }
 
@@ -131,7 +143,7 @@ impl BoardData {
     /// Pawn-only Zobrist hash of this position.
     pub fn hash_pawns(&self) -> u64 {
         let mut hash = 0;
-        for pawn in self.pawns() {
+        for pawn in self.piecemask.pawns() {
             let square = self.square_of_piece(pawn);
             let colour = pawn.colour();
             Zobrist::add_piece(colour, Piece::Pawn, square, &mut hash);

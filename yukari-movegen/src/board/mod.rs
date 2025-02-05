@@ -123,6 +123,16 @@ impl Board {
         Self::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap()
     }
 
+    #[must_use]
+    pub const fn data(&self) -> &BoardData {
+        &self.data
+    }
+
+    #[must_use]
+    pub const fn castle(&self) -> &(bool, bool, bool, bool) {
+        &self.castle
+    }
+
     /// Check if this board is illegal by seeing if the enemy king is attacked by friendly pieces.
     /// If it is, it implies the move the enemy made left them in check, which is illegal.
     #[must_use]
@@ -624,7 +634,7 @@ impl Board {
             }
         };
 
-        let victims = (self.data.pieces_of_colour(!self.side) & self.data.queens())
+        let victims = (self.data.pieces_of_colour(!self.side) & self.data.piecemask().queens())
             .into_iter()
             .chain(self.data.pieces_of_colour(!self.side) & self.data.rooks())
             .chain(self.data.pieces_of_colour(!self.side) & self.data.bishops())
@@ -891,7 +901,7 @@ impl Board {
                           moved_pieces: &mut Bitlist|
          -> Option<Piece> {
             let bitlist = bitlist & moved_pieces.invert();
-            if let Some(piece) = (bitlist & self.data.pawns()).peek() {
+            if let Some(piece) = (bitlist & self.data.piecemask().pawns()).peek() {
                 let not_piece = Bitlist::from_piece(piece).invert();
                 *our_attacks &= not_piece;
                 *their_attacks &= not_piece;
@@ -899,14 +909,14 @@ impl Board {
                 add_xrays(self.square_of_piece(piece), our_attacks, their_attacks, moved_pieces);
                 return Some(Piece::Pawn);
             }
-            if let Some(piece) = (bitlist & self.data.knights()).peek() {
+            if let Some(piece) = (bitlist & self.data.piecemask().knights()).peek() {
                 let not_piece = Bitlist::from_piece(piece).invert();
                 *our_attacks &= not_piece;
                 *their_attacks &= not_piece;
                 *moved_pieces |= Bitlist::from_piece(piece);
                 return Some(Piece::Knight);
             }
-            if let Some(piece) = (bitlist & self.data.bishops()).peek() {
+            if let Some(piece) = (bitlist & self.data.piecemask().bishops()).peek() {
                 let not_piece = Bitlist::from_piece(piece).invert();
                 *our_attacks &= not_piece;
                 *their_attacks &= not_piece;
@@ -914,7 +924,7 @@ impl Board {
                 add_xrays(self.square_of_piece(piece), our_attacks, their_attacks, moved_pieces);
                 return Some(Piece::Bishop);
             }
-            if let Some(piece) = (bitlist & self.data.rooks()).peek() {
+            if let Some(piece) = (bitlist & self.data.piecemask().rooks()).peek() {
                 let not_piece = Bitlist::from_piece(piece).invert();
                 *our_attacks &= not_piece;
                 *their_attacks &= not_piece;
@@ -922,7 +932,7 @@ impl Board {
                 add_xrays(self.square_of_piece(piece), our_attacks, their_attacks, moved_pieces);
                 return Some(Piece::Rook);
             }
-            if let Some(piece) = (bitlist & self.data.queens()).peek() {
+            if let Some(piece) = (bitlist & self.data.piecemask().queens()).peek() {
                 let not_piece = Bitlist::from_piece(piece).invert();
                 *our_attacks &= not_piece;
                 *their_attacks &= not_piece;
@@ -930,7 +940,7 @@ impl Board {
                 add_xrays(self.square_of_piece(piece), our_attacks, their_attacks, moved_pieces);
                 return Some(Piece::Queen);
             }
-            if let Some(piece) = (bitlist & self.data.kings()).peek() {
+            if let Some(piece) = (bitlist & self.data.piecemask().kings()).peek() {
                 let not_piece = Bitlist::from_piece(piece).invert();
                 *our_attacks &= not_piece;
                 *their_attacks &= not_piece;
@@ -1083,11 +1093,11 @@ impl Board {
         let piece = self.piece_from_square(m.from).unwrap_or_else(|| panic!("{m} has no origin piece on board\n{self}"));
         let piece_char = match piece {
             Piece::Pawn => "",
-            Piece::Knight => "♘ ",
-            Piece::Bishop => "♗ ",
-            Piece::Rook => "♖ ",
-            Piece::Queen => "♕ ",
-            Piece::King => "♔ ",
+            Piece::Knight => "N",
+            Piece::Bishop => "B",
+            Piece::Rook => "R",
+            Piece::Queen => "Q",
+            Piece::King => "K",
         };
         write!(san, "{piece_char}").unwrap();
 
@@ -1140,12 +1150,12 @@ impl Board {
         // Promotion?
         if matches!(m.kind, MoveType::Promotion | MoveType::CapturePromotion) {
             let piece_char = match m.prom.unwrap() {
-                Piece::Pawn => '♙',
-                Piece::Knight => '♘',
-                Piece::Bishop => '♗',
-                Piece::Rook => '♖',
-                Piece::Queen => '♕',
-                Piece::King => '♔',
+                Piece::Pawn => 'P',
+                Piece::Knight => 'N',
+                Piece::Bishop => 'B',
+                Piece::Rook => 'R',
+                Piece::Queen => 'Q',
+                Piece::King => 'K',
             };
             write!(san, "={piece_char}").unwrap();
         }
@@ -1180,6 +1190,27 @@ impl Board {
             board = board.make(m);
         }
         s
+    }
+
+    #[must_use]
+    pub fn insufficient_material(&self) -> bool {
+        let white_count = (self.data.piecemask().occupied() & Bitlist::mask_from_colour(Colour::White)).count_ones();
+        let white_knight_count = (self.data.piecemask().knights() & Bitlist::mask_from_colour(Colour::White)).count_ones();
+        let white_bishop_count = (self.data.piecemask().bishops() & Bitlist::mask_from_colour(Colour::White)).count_ones();
+
+        let black_count = (self.data.piecemask().occupied() & Bitlist::mask_from_colour(Colour::Black)).count_ones();
+        let black_knight_count = (self.data.piecemask().knights() & Bitlist::mask_from_colour(Colour::White)).count_ones();
+        let black_bishop_count = (self.data.piecemask().bishops() & Bitlist::mask_from_colour(Colour::White)).count_ones();
+
+        if white_count == 1 && black_count == 1 {
+            return true;
+        }
+
+        if (white_count == 2 && (white_knight_count == 1 || white_bishop_count == 1) && black_count == 1) || (black_count == 2 && (black_knight_count == 1 || black_bishop_count == 1) && white_count == 1) {
+            return true;
+        }
+
+        false
     }
 }
 

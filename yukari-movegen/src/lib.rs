@@ -11,7 +11,7 @@ pub use board::{Board, PieceIndex, Zobrist};
 pub use chessmove::{Move, MoveType};
 pub use colour::Colour;
 pub use piece::Piece;
-pub use square::Square;
+pub use square::{Square, Rank, File};
 use tinyvec::ArrayVec;
 
 /// Count the number of legal chess positions after N moves.

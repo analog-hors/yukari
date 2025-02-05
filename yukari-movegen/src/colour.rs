@@ -1,7 +1,7 @@
 use std::ops::Not;
 
 /// A piece colour.
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Colour {
     /// White pieces.
     White,

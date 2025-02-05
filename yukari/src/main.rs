@@ -1,17 +1,14 @@
 use std::{
-    io::{self},
+    io::{self, BufWriter},
     str::FromStr,
     time::{Duration, Instant},
 };
 
 use colored::Colorize;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use tinyvec::ArrayVec;
 use yukari::{
-    self, allocate_tt,
-    engine::{TimeControl, TimeMode},
-    is_repetition_draw,
-    output::{self, Output},
-    Search, SearchParams, TtEntry,
+    self, allocate_tt, datagen, engine::{TimeControl, TimeMode}, is_repetition_draw, output::{self, Output}, Search, SearchParams, TtEntry
 };
 use yukari_movegen::{Board, Colour, Move, Piece, Square};
 
@@ -376,6 +373,21 @@ fn main() -> io::Result<()> {
     for arg in std::env::args() {
         if arg == "bench" {
             engine.bench(&mut tt);
+            return Ok(());
+        }
+        if arg == "datagen" {
+            const GAMES: usize = 500_000;
+            const BATCH: usize = 1_000;
+            
+            let positions = (0..(GAMES/BATCH)).into_par_iter().map(|id| {
+                let f = std::fs::File::create(format!("games{id}.viriformat")).unwrap();
+                let mut f = BufWriter::new(f);
+                let mut dg = datagen::DataGen::new(&mut f);
+                dg.play(BATCH)
+            }).sum::<usize>();
+
+            println!("{GAMES} games, {positions} positions");
+
             return Ok(());
         }
     }
