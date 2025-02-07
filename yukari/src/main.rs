@@ -380,7 +380,7 @@ fn main() -> io::Result<()> {
             const BATCH: usize = 1_000;
             
             let positions = (0..(GAMES/BATCH)).into_par_iter().map(|id| {
-                let f = std::fs::File::create(format!("games{id}.viriformat")).unwrap();
+                let f = std::fs::File::options().create(true).append(true).open(format!("games{id}.viriformat")).unwrap();
                 let mut f = BufWriter::new(f);
                 let mut dg = datagen::DataGen::new(&mut f);
                 dg.play(BATCH)

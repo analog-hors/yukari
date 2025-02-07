@@ -87,8 +87,22 @@ struct ViriMove(u16);
 
 impl From<Move> for ViriMove {
     fn from(m: Move) -> Self {
-        let from = m.from.into_inner() as u16;
-        let dest = m.dest.into_inner() as u16;
+        let (from, dest) = if let yukari_movegen::MoveType::Castle = m.kind {
+            // convert from yukari's "king two squares" castling to viridithas' "king takes rook" castling.
+            let rank = Rank::from(m.dest);
+            let file = File::from(m.dest);
+            let from = m.from.into_inner() as u16;
+            let dest = match (rank, file) {
+                (Rank::One, File::G) => Square::from_rank_file(Rank::One, File::H).into_inner() as u16,
+                (Rank::One, File::C) => Square::from_rank_file(Rank::One, File::A).into_inner() as u16,
+                (Rank::Eight, File::G) => Square::from_rank_file(Rank::Eight, File::H).into_inner() as u16,
+                (Rank::Eight, File::C) => Square::from_rank_file(Rank::Eight, File::A).into_inner() as u16,
+                _ => panic!("unrecognised castling to-square"),
+            };
+            (from, dest)
+        } else {
+            (m.from.into_inner() as u16, m.dest.into_inner() as u16)
+        };
         let prom = match m.prom {
             None => 0,
             Some(Piece::Knight) => 0,
@@ -459,6 +473,10 @@ impl<'a, T: Write> DataGen<'a, T> {
                 eprintln!("cozy-chess considers move {m} on board {cc_board} to be illegal!");
                 return false;
             };
+
+            // TODO FOR NEXT DATAGEN RUN: 
+            // these scores need to be absolute, rather than relative.
+            // unfortunately, it's probably better to continue datagen with the fucked score than to start from scratch.
 
             game.push(m, score);
             *yukari_board = yukari_board.make(m);
