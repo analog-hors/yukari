@@ -9,54 +9,6 @@ const SCALE: i32 = 400;
 const QA: i16 = 255;
 const QB: i16 = 64;
 
-/// This is the quantised format that bullet outputs.
-#[repr(C)]
-struct RawNetwork {
-    /// Column-Major `HIDDEN_SIZE x 768` matrix.
-    feature_weights: [Accumulator; 768],
-    /// Vector with dimension `HIDDEN_SIZE`.
-    feature_bias: Accumulator,
-    /// Column-Major `OUTPUT_BUCKETS x (2 * HIDDEN_SIZE)` matrix.
-    output_weights: [[i16; OUTPUT_BUCKETS]; 2 * HIDDEN_SIZE],
-    /// Scalar output biases.
-    output_bias: [i16; OUTPUT_BUCKETS],
-}
-
-impl RawNetwork {
-    #[allow(clippy::large_stack_frames)]
-    const fn into_network(self) -> Network {
-        let mut output_weights = [[self.feature_bias; 2]; OUTPUT_BUCKETS];
-
-        // const for requires const Iterator which requires const traits...
-        let mut bucket = 0;
-        while bucket < OUTPUT_BUCKETS {
-            let mut colour = 0;
-            while colour < 2 {
-                let mut i = 0;
-                while i < HIDDEN_SIZE {
-                    output_weights[bucket][colour].vals[i] = self.output_weights[HIDDEN_SIZE * colour + i][bucket];
-                    i += 1;
-                }
-                colour += 1;
-            }
-            bucket += 1;
-        }
-
-        Network {
-            feature_weights: self.feature_weights,
-            feature_bias: self.feature_bias,
-            output_weights,
-            output_bias: self.output_bias,
-        }
-    }
-}
-
-static NNUE: Network = unsafe {
-    std::mem::transmute::<[u8; std::mem::size_of::<RawNetwork>()], RawNetwork>(*include_bytes!("../../../yukari_38cb8ff4.bin"))
-        .into_network()
-};
-const _RAW_AND_PROCESSED_NETWORKS_ARE_SAME_SIZE: () = assert!(std::mem::size_of::<RawNetwork>() == std::mem::size_of::<Network>());
-
 /// This is the quantised format that yukari uses.
 #[repr(C)]
 pub struct Network {
@@ -69,6 +21,10 @@ pub struct Network {
     /// Scalar output biases.
     output_bias: [i16; OUTPUT_BUCKETS],
 }
+
+static NNUE: Network = unsafe {
+    std::mem::transmute::<[u8; std::mem::size_of::<Network>()], Network>(*include_bytes!("../../../yukari_af9fc745.bin"))
+};
 
 impl Network {
     /// Calculates the output of the network, starting from the already
