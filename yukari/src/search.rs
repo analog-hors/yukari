@@ -178,6 +178,13 @@ impl<'a> Search<'a> {
         }
         alpha = alpha.max(best_score);
 
+        let mut tt_move = None;
+        if let Some(score) = self.probe_tt(board, 0, ply, alpha, beta, &mut tt_move) {
+            if alpha == beta - 1 {
+                return score;
+            }
+        }
+
         let mut index = 0;
         board.generate_captures_incremental(|m| {
             self.qnodes += 1;
