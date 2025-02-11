@@ -2,7 +2,7 @@ use std::simd::{cmp::SimdOrd, i16x64, i32x64, num::SimdInt};
 
 use crate::{Colour, Piece, Square};
 
-const HIDDEN_SIZE: usize = 512;
+const HIDDEN_SIZE: usize = 768;
 const OUTPUT_BUCKETS: usize = 8;
 const DIVISOR: usize = 32_usize.div_ceil(OUTPUT_BUCKETS);
 const SCALE: i32 = 400;
@@ -23,7 +23,7 @@ pub struct Network {
 }
 
 static NNUE: Network = unsafe {
-    std::mem::transmute::<[u8; std::mem::size_of::<Network>()], Network>(*include_bytes!("../../../yukari_af9fc745.bin"))
+    std::mem::transmute::<[u8; std::mem::size_of::<Network>()], Network>(*include_bytes!("../../../yukari_00f884a9.bin"))
 };
 
 impl Network {
