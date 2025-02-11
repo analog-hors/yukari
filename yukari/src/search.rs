@@ -105,7 +105,7 @@ pub struct Search<'a> {
     q_beta_cutoffs: u64,
     start: Instant,
     stop_after: Option<Instant>,
-    history: [[i16; 64]; 64],
+    history: &'a mut [[i16; 64]; 64],
     tt: &'a [TtEntry],
     corrhist: &'a mut [[i32; 16384]; 2],
     params: &'a SearchParams,
@@ -114,7 +114,7 @@ pub struct Search<'a> {
 impl<'a> Search<'a> {
     #[must_use]
     pub fn new(
-        start: Instant, stop_after: Option<Instant>, tt: &'a [TtEntry], corrhist: &'a mut [[i32; 16384]; 2],
+        start: Instant, stop_after: Option<Instant>, tt: &'a [TtEntry], history: &'a mut [[i16; 64]; 64], corrhist: &'a mut [[i32; 16384]; 2],
         params: &'a SearchParams,
     ) -> Self {
         Self {
@@ -130,7 +130,7 @@ impl<'a> Search<'a> {
             q_beta_cutoffs: 0,
             start,
             stop_after,
-            history: [[0; 64]; 64],
+            history,
             tt,
             corrhist,
             params,
@@ -371,6 +371,7 @@ impl<'a> Search<'a> {
         }
 
         moves.sort_by(|a, b| {
+            // TT move sorts above everything else.
             if let Some(tt_move) = tt_move {
                 if *a == tt_move {
                     return Ordering::Less;
@@ -380,6 +381,9 @@ impl<'a> Search<'a> {
                 }
             }
 
+            // Captures sort above quiet moves.
+            // Captures are sorted by most valuable victim, and tiebroken by least valuable attacker.
+            // Quiets are sorted by largest history heuristic value.
             match (a.is_capture(), b.is_capture()) {
                 (false, false) => self.history[b.from.into_inner() as usize][b.dest.into_inner() as usize]
                     .cmp(&self.history[a.from.into_inner() as usize][a.dest.into_inner() as usize]),

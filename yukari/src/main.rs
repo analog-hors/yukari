@@ -39,6 +39,7 @@ pub struct Yukari {
     nodes_per_second: Option<u32>,
     mode: Mode,
     keystack: Vec<u64>,
+    history: [[i16; 64]; 64],
     corrhist: [[i32; 16384]; 2],
     params: SearchParams,
 }
@@ -57,6 +58,7 @@ impl Yukari {
             // Normal move making is on by default
             mode: Mode::Normal,
             keystack: Vec::new(),
+            history: [[0; 64]; 64],
             corrhist: [[0; 16384]; 2],
             params: SearchParams::default(),
         }
@@ -121,7 +123,7 @@ impl Yukari {
             (None, Some(hard_limit))
         };
 
-        let mut s = Search::new(start, stop_after, tt, &mut self.corrhist, &self.params);
+        let mut s = Search::new(start, stop_after, tt, &mut self.history, &mut self.corrhist, &self.params);
         // clone another to use inside the loop
         // Use a seperate backing data to record the current move set
         let mut depth = 1;
@@ -271,7 +273,12 @@ impl Yukari {
         for fen in fens {
             let board = Board::from_fen(fen).unwrap();
             let start = Instant::now();
-            let mut s = Search::new(start, None, tt, &mut self.corrhist, &self.params);
+            for from in 0..64 {
+                for dest in 0..64 {
+                    self.history[from][dest] = 0;
+                }
+            }
+            let mut s = Search::new(start, None, tt, &mut self.history, &mut self.corrhist, &self.params);
             let mut keystack = Vec::new();
             let mut pv = ArrayVec::new();
             let mut score = 0;
