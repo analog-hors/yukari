@@ -8,7 +8,11 @@ use colored::Colorize;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use tinyvec::ArrayVec;
 use yukari::{
-    self, allocate_tt, datagen, engine::{TimeControl, TimeMode}, is_repetition_draw, output::{self, Output}, Search, SearchParams, TtEntry
+    self, allocate_tt, datagen,
+    engine::{TimeControl, TimeMode},
+    is_repetition_draw,
+    output::{self, Output},
+    Search, SearchParams, TtEntry,
 };
 use yukari_movegen::{Board, Colour, Move, Piece, Square};
 
@@ -385,13 +389,16 @@ fn main() -> io::Result<()> {
         if arg == "datagen" {
             const GAMES: usize = 500_000;
             const BATCH: usize = 1_000;
-            
-            let positions = (0..(GAMES/BATCH)).into_par_iter().map(|id| {
-                let f = std::fs::File::options().create(true).append(true).open(format!("games{id}.viriformat")).unwrap();
-                let mut f = BufWriter::new(f);
-                let mut dg = datagen::DataGen::new(&mut f);
-                dg.play(BATCH)
-            }).sum::<usize>();
+
+            let positions = (0..(GAMES / BATCH))
+                .into_par_iter()
+                .map(|id| {
+                    let f = std::fs::File::options().create(true).append(true).open(format!("games{id}.viriformat")).unwrap();
+                    let mut f = BufWriter::new(f);
+                    let mut dg = datagen::DataGen::new(&mut f);
+                    dg.play(BATCH)
+                })
+                .sum::<usize>();
 
             println!("{GAMES} games, {positions} positions");
 
@@ -542,7 +549,7 @@ fn main() -> io::Result<()> {
                     "HistPenaltyBase" => engine.params.hist_pen_base = value,
                     "HistPenaltyMul" => engine.params.hist_pen_mul = value,
                     "Hash" if value >= 1 => tt = allocate_tt(value as usize), // UCIism. grumble grumble.
-                    "Threads" => (),                                                     // UCIism, grumble grumble.
+                    "Threads" => (),                                          // UCIism, grumble grumble.
                     _ => (),
                 }
             }
@@ -564,7 +571,7 @@ fn main() -> io::Result<()> {
                     "HistPenaltyBase" => engine.params.hist_pen_base = value,
                     "HistPenaltyMul" => engine.params.hist_pen_mul = value,
                     "Hash" if value >= 1 => tt = allocate_tt(value as usize), // UCIism. grumble grumble.
-                    "Threads" => (),                                                     // UCIism, grumble grumble.
+                    "Threads" => (),                                          // UCIism, grumble grumble.
                     _ => (),
                 }
             }

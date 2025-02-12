@@ -212,6 +212,12 @@ impl Index<Square> for BitlistArray {
     }
 }
 
+impl Default for BitlistArray {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BitlistArray {
     /// Create a `BitlistArray`.
     pub const fn new() -> Self {

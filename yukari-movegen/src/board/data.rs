@@ -25,6 +25,12 @@ pub struct BoardData {
     eval: Eval,
 }
 
+impl Default for BoardData {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BoardData {
     /// Create a new board.
     pub fn new() -> Self {
@@ -66,48 +72,6 @@ impl BoardData {
     /// True if the square has a piece on it.
     pub fn has_piece(&self, square: Square) -> bool {
         self.index[square].is_some()
-    }
-
-    #[deprecated = ".pawns() -> .piecemask().pawns()"]
-    pub const fn pawns(&self) -> Bitlist {
-        self.piecemask.pawns()
-    }
-
-    #[deprecated = ".knights() -> .piecemask().knights()"]
-    pub const fn knights(&self) -> Bitlist {
-        self.piecemask.knights()
-    }
-
-    #[deprecated = ".bishops() -> .piecemask().bishops()"]
-    pub const fn bishops(&self) -> Bitlist {
-        self.piecemask.bishops()
-    }
-    
-    #[deprecated = ".rooks() -> .piecemask().rooks()"]
-    pub const fn rooks(&self) -> Bitlist {
-        self.piecemask.rooks()
-    }
-
-    #[deprecated = ".queens() -> .piecemask().queens()"]
-    pub const fn queens(&self) -> Bitlist {
-        self.piecemask.queens()
-    }
-
-    #[deprecated = ".kings() -> .piecemask().kings()"]
-    pub const fn kings(&self) -> Bitlist {
-        self.piecemask.kings()
-    }
-
-    /// Return a bitlist of all pieces.
-    #[deprecated = ".pieces() -> .piecemask().bishops()"]
-    pub const fn pieces(&self) -> Bitlist {
-        self.piecemask.occupied()
-    }
-
-    /// Return a bitlist of all pieces of a given colour.
-    #[deprecated = ".pieces_of_colour(colour) -> .piecemask().pieces_of_colour(colour)"]
-    pub const fn pieces_of_colour(&self, colour: Colour) -> Bitlist {
-        self.piecemask.pieces_of_colour(colour)
     }
 
     /// Return the square of the king of a given colour.
@@ -235,7 +199,7 @@ impl BoardData {
 
     /// Evaluation from the perspective of `colour`.
     pub fn eval(&self, colour: Colour) -> i32 {
-        self.eval.get(self.pieces().count_ones() as usize, colour)
+        self.eval.get(self.piecemask().occupied().count_ones() as usize, colour)
     }
 
     /// Rebuild the attack set for the board.

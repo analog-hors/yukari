@@ -1,4 +1,8 @@
-use std::{io::Write, str::FromStr, time::{Duration, Instant}};
+use std::{
+    io::Write,
+    str::FromStr,
+    time::{Duration, Instant},
+};
 
 use rand::seq::IteratorRandom;
 use tinyvec::ArrayVec;
@@ -41,14 +45,18 @@ impl From<Board> for MarlinFormat {
             fullmove_number: 0,
             eval: 0,
             wdl: MarlinWdl::Draw,
-            _extra: 0
+            _extra: 0,
         };
         for sq in 0..64 {
             let square = unsafe { Square::from_u8_unchecked(sq) };
             let Some(piece) = board.data().piece_index(square) else { continue };
 
             let mut piece = if board.piece_from_bit(piece) == Piece::Rook {
-                if (board.castle().0 && square == h1) || (board.castle().1 && square == a1) || (board.castle().2 && square == h8) || (board.castle().3 && square == a8) {
+                if (board.castle().0 && square == h1)
+                    || (board.castle().1 && square == a1)
+                    || (board.castle().2 && square == h8)
+                    || (board.castle().3 && square == a8)
+                {
                     // "unmoved rook" to represent castling rights.
                     (6_u8) | ((piece.colour() as u8) << 3)
                 } else {
@@ -132,10 +140,7 @@ struct ViriFormat {
 
 impl ViriFormat {
     pub fn new(board: Board) -> Self {
-        Self {
-            position: MarlinFormat::from(board),
-            moves: Vec::new(),
-        }
+        Self { position: MarlinFormat::from(board), moves: Vec::new() }
     }
 
     pub fn push(&mut self, m: Move, score: i16) {
@@ -153,7 +158,7 @@ impl ViriFormat {
             f.write_all(&m.0.to_le_bytes()).unwrap();
             f.write_all(&score.to_le_bytes()).unwrap();
         }
-        
+
         // viriformat footer
         f.write_all(&[0, 0, 0, 0]).unwrap();
     }
@@ -171,7 +176,7 @@ pub struct DataGen<'a, T: Write> {
 
 impl<'a, T: Write> DataGen<'a, T> {
     pub fn new(f: &'a mut T) -> DataGen<'a, T> {
-        Self { 
+        Self {
             f,
             rng: rand::rng(),
             params: search::SearchParams::default(),
@@ -192,93 +197,12 @@ impl<'a, T: Write> DataGen<'a, T> {
     pub fn test1(&mut self) {
         let mut board = Board::from_fen("rnbqk1nr/pppp3p/3bp3/5pp1/4P3/P1P5/1P1PKPPP/RNBQ1BNR w kq - 0 5").unwrap();
         let moves = [
-            "e2e1",
-            "d8e7",
-            "d2d4",
-            "f5e4",
-            "g2g3",
-            "b7b6",
-            "f1g2",
-            "c8b7",
-            "d1h5",
-            "e7f7",
-            "h5f7",
-            "e8f7",
-            "c1g5",
-            "h7h6",
-            "g5e3",
-            "g8f6",
-            "b1d2",
-            "d6e7",
-            "g1e2",
-            "d7d6",
-            "a1d1",
-            "b8d7",
-            "c3c4",
-            "a8e8",
-            "f2f3",
-            "e4f3",
-            "g2f3",
-            "d6d5",
-            "e3f4",
-            "c7c5",
-            "c4d5",
-            "e6d5",
-            "e1f2",
-            "h6h5",
-            "h1e1",
-            "h5h4",
-            "f2g2",
-            "f6e4",
-            "e2c3",
-            "h4h3",
-            "g2g1",
-            "e4c3",
-            "b2c3",
-            "d7f6",
-            "f3e2",
-            "b7c8",
-            "d2f3",
-            "f6e4",
-            "e2b5",
-            "e4c3",
-            "b5e8",
-            "h8e8",
-            "d1d3",
-            "c3e4",
-            "d4c5",
-            "e7c5",
-            "f4e3",
-            "c8e6",
-            "e1f1",
-            "f7e7",
-            "f3d4",
-            "e8c8",
-            "d4e6",
-            "e7e6",
-            "g1h1",
-            "a7a5",
-            "a3a4",
-            "c5e3",
-            "d3e3",
-            "c8c2",
-            "g3g4",
-            "e6d6",
-            "e3h3",
-            "e4f2",
-            "f1f2",
-            "c2f2",
-            "h3g3",
-            "f2f4",
-            "h2h4",
-            "f4a4",
-            "h4h5",
-            "d6e7",
-            "h1g2",
-            "b6b5",
-            "g4g5",
-            "a4h4",
-            "g5g6"
+            "e2e1", "d8e7", "d2d4", "f5e4", "g2g3", "b7b6", "f1g2", "c8b7", "d1h5", "e7f7", "h5f7", "e8f7", "c1g5", "h7h6", "g5e3",
+            "g8f6", "b1d2", "d6e7", "g1e2", "d7d6", "a1d1", "b8d7", "c3c4", "a8e8", "f2f3", "e4f3", "g2f3", "d6d5", "e3f4", "c7c5",
+            "c4d5", "e6d5", "e1f2", "h6h5", "h1e1", "h5h4", "f2g2", "f6e4", "e2c3", "h4h3", "g2g1", "e4c3", "b2c3", "d7f6", "f3e2",
+            "b7c8", "d2f3", "f6e4", "e2b5", "e4c3", "b5e8", "h8e8", "d1d3", "c3e4", "d4c5", "e7c5", "f4e3", "c8e6", "e1f1", "f7e7",
+            "f3d4", "e8c8", "d4e6", "e7e6", "g1h1", "a7a5", "a3a4", "c5e3", "d3e3", "c8c2", "g3g4", "e6d6", "e3h3", "e4f2", "f1f2",
+            "c2f2", "h3g3", "f2f4", "h2h4", "f4a4", "h4h5", "d6e7", "h1g2", "b6b5", "g4g5", "a4h4", "g5g6",
         ];
 
         let mut game = ViriFormat::new(board.clone());
@@ -438,11 +362,11 @@ impl<'a, T: Write> DataGen<'a, T> {
                             }
                         }
                     }
-                },
+                }
                 cozy_chess::GameStatus::Drawn => {
                     game.finish(MarlinWdl::Draw, self.f);
                     return true;
-                },
+                }
                 cozy_chess::GameStatus::Won => {
                     if yukari_board.side() == Colour::White {
                         println!("0-1 {{Black wins}}");
@@ -476,7 +400,7 @@ impl<'a, T: Write> DataGen<'a, T> {
                 return false;
             };
 
-            // TODO FOR NEXT DATAGEN RUN: 
+            // TODO FOR NEXT DATAGEN RUN:
             // these scores need to be absolute, rather than relative.
             // unfortunately, it's probably better to continue datagen with the fucked score than to start from scratch.
 

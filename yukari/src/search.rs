@@ -114,8 +114,8 @@ pub struct Search<'a> {
 impl<'a> Search<'a> {
     #[must_use]
     pub fn new(
-        start: Instant, stop_after: Option<Instant>, tt: &'a [TtEntry], history: &'a mut [[i16; 64]; 64], corrhist: &'a mut [[i32; 16384]; 2],
-        params: &'a SearchParams,
+        start: Instant, stop_after: Option<Instant>, tt: &'a [TtEntry], history: &'a mut [[i16; 64]; 64],
+        corrhist: &'a mut [[i32; 16384]; 2], params: &'a SearchParams,
     ) -> Self {
         Self {
             nodes: 0,

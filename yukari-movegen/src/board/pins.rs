@@ -25,11 +25,11 @@ impl PinInfo {
     pub fn discover(board: &Board) -> Self {
         let mut info = Self::default();
 
-        let sliders = board.data.bishops() | board.data.rooks() | board.data.queens();
+        let sliders = board.data.piecemask().bishops() | board.data.piecemask().rooks() | board.data.piecemask().queens();
         let king_square = board.data.king_square(board.side);
         let king_square_16x8 = Square16x8::from_square(king_square);
 
-        for possible_pinner in board.data.pieces_of_colour(!board.side).and(sliders) {
+        for possible_pinner in board.data.piecemask().pieces_of_colour(!board.side).and(sliders) {
             let pinner_square = board.data.square_of_piece(possible_pinner);
             let pinner_square_16x8 = Square16x8::from_square(pinner_square);
             let pinner_type = board.data.piece_from_bit(possible_pinner);
@@ -77,7 +77,7 @@ impl PinInfo {
 
             match (friendly_blocker, enemy_blocker) {
                 // There are no friendly blockers: skip.
-                (None, _) => continue,
+                (None, _) => (),
                 // There is one friendly blocker: it is pinned.
                 (Some(blocker), None) => {
                     info.pins[blocker.into_inner() as usize] = Some(pinner_king_dir);

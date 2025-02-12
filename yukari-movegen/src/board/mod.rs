@@ -139,10 +139,10 @@ impl Board {
     #[inline]
     pub fn illegal(&self) -> bool {
         // A valid chessboard has a white king and a black king.
-        if (self.kings() & Bitlist::white()).empty() {
+        if (self.data().piecemask().kings() & Bitlist::white()).empty() {
             return true;
         }
-        if (self.kings() & Bitlist::black()).empty() {
+        if (self.data().piecemask().kings() & Bitlist::black()).empty() {
             return true;
         }
         // The opponent's king should not be in check.
@@ -395,7 +395,7 @@ impl Board {
         let Some(ep) = self.ep else {
             return;
         };
-        for capturer in self.data.attacks_to(ep, self.side).and(self.data.pawns()).and(!pininfo.enpassant_pinned) {
+        for capturer in self.data.attacks_to(ep, self.side).and(self.data.piecemask().pawns()).and(!pininfo.enpassant_pinned) {
             let from = self.data.square_of_piece(capturer);
             self.try_push_move(v, from, ep, MoveType::EnPassant, None, pininfo);
         }
@@ -496,7 +496,7 @@ impl Board {
             if ep_south != attacker_square || attacker_piece != Piece::Pawn {
                 return;
             }
-            for capturer in self.data.attacks_to(ep, self.side) & self.data.pawns() & !pininfo.enpassant_pinned {
+            for capturer in self.data.attacks_to(ep, self.side) & self.data.piecemask().pawns() & !pininfo.enpassant_pinned {
                 self.try_push_move(v, self.data.square_of_piece(capturer), ep, MoveType::EnPassant, None, &pininfo);
             }
         })();
@@ -510,7 +510,9 @@ impl Board {
                 }
 
                 // Piece moves.
-                for attacker in self.data.attacks_to(dest, self.side).and(!self.data.pawns()).and(!self.data.kings()) {
+                for attacker in
+                    self.data.attacks_to(dest, self.side).and(!self.data.piecemask().pawns()).and(!self.data.piecemask().kings())
+                {
                     self.try_push_move(v, self.data.square_of_piece(attacker), dest, MoveType::Normal, None, &pininfo);
                 }
 
@@ -604,7 +606,7 @@ impl Board {
         let mut find_attackers = |dest: Square| {
             let promotion_pieces = [Piece::Queen, Piece::Knight, Piece::Rook, Piece::Bishop];
             let attacks = self.data.attacks_to(dest, self.side);
-            for capturer in attacks & self.data.pawns() {
+            for capturer in attacks & self.data.piecemask().pawns() {
                 let from = self.data.square_of_piece(capturer);
                 if Rank::from(dest).is_relative_eighth(self.side) {
                     for piece in &promotion_pieces {
@@ -614,17 +616,17 @@ impl Board {
                     self.try_push_move(v, from, dest, MoveType::Capture, None, &pininfo);
                 }
             }
-            let capturers = (attacks & self.data.knights())
+            let capturers = (attacks & self.data.piecemask().knights())
                 .into_iter()
-                .chain(attacks & self.data.bishops())
-                .chain(attacks & self.data.rooks())
-                .chain(attacks & self.data.queens());
+                .chain(attacks & self.data.piecemask().bishops())
+                .chain(attacks & self.data.piecemask().rooks())
+                .chain(attacks & self.data.piecemask().queens());
 
             for capturer in capturers {
                 let from = self.data.square_of_piece(capturer);
                 self.try_push_move(v, from, dest, MoveType::Capture, None, &pininfo);
             }
-            for capturer in attacks & self.data.kings() {
+            for capturer in attacks & self.data.piecemask().kings() {
                 let from = self.data.square_of_piece(capturer);
                 if !self.data.attacks_to(dest, !self.side).empty() {
                     // Moving into check is illegal.
@@ -634,12 +636,12 @@ impl Board {
             }
         };
 
-        let victims = (self.data.pieces_of_colour(!self.side) & self.data.piecemask().queens())
+        let victims = (self.data.piecemask().pieces_of_colour(!self.side) & self.data.piecemask().queens())
             .into_iter()
-            .chain(self.data.pieces_of_colour(!self.side) & self.data.rooks())
-            .chain(self.data.pieces_of_colour(!self.side) & self.data.bishops())
-            .chain(self.data.pieces_of_colour(!self.side) & self.data.knights())
-            .chain(self.data.pieces_of_colour(!self.side) & self.data.pawns());
+            .chain(self.data.piecemask().pieces_of_colour(!self.side) & self.data.piecemask().rooks())
+            .chain(self.data.piecemask().pieces_of_colour(!self.side) & self.data.piecemask().bishops())
+            .chain(self.data.piecemask().pieces_of_colour(!self.side) & self.data.piecemask().knights())
+            .chain(self.data.piecemask().pieces_of_colour(!self.side) & self.data.piecemask().pawns());
 
         for victim in victims {
             find_attackers(self.square_of_piece(victim));
@@ -690,7 +692,7 @@ impl Board {
         let mut find_attackers = |dest: Square, victim_type: Piece| -> bool {
             let promotion_pieces = [Piece::Queen, Piece::Knight, Piece::Rook, Piece::Bishop];
             let attacks = self.data.attacks_to(dest, self.side);
-            for capturer in attacks & self.data.pawns() {
+            for capturer in attacks & self.data.piecemask().pawns() {
                 let from = self.data.square_of_piece(capturer);
                 if Rank::from(dest).is_relative_eighth(self.side) {
                     for piece in &promotion_pieces {
@@ -702,7 +704,7 @@ impl Board {
                     return false;
                 }
             }
-            for capturer in attacks & (self.data.knights() | self.data.bishops()) {
+            for capturer in attacks & (self.data.piecemask().knights() | self.data.piecemask().bishops()) {
                 let from = self.data.square_of_piece(capturer);
                 if victim_type < Piece::Bishop
                     && self.static_exchange_evaluation(Move::new(from, dest, MoveType::Capture, None)) < 0
@@ -714,7 +716,7 @@ impl Board {
                     return false;
                 }
             }
-            for capturer in attacks & self.data.rooks() {
+            for capturer in attacks & self.data.piecemask().rooks() {
                 let from = self.data.square_of_piece(capturer);
                 if victim_type < Piece::Rook && self.static_exchange_evaluation(Move::new(from, dest, MoveType::Capture, None)) < 0
                 {
@@ -725,7 +727,7 @@ impl Board {
                     return false;
                 }
             }
-            for capturer in attacks & self.data.queens() {
+            for capturer in attacks & self.data.piecemask().queens() {
                 let from = self.data.square_of_piece(capturer);
                 if victim_type < Piece::Queen && self.static_exchange_evaluation(Move::new(from, dest, MoveType::Capture, None)) < 0
                 {
@@ -736,7 +738,7 @@ impl Board {
                     return false;
                 }
             }
-            for capturer in attacks & self.data.kings() {
+            for capturer in attacks & self.data.piecemask().kings() {
                 let from = self.data.square_of_piece(capturer);
                 if !self.data.attacks_to(dest, !self.side).empty() {
                     // Moving into check is illegal.
@@ -749,25 +751,27 @@ impl Board {
             true
         };
 
-        for victim in self.data.pieces_of_colour(!self.side) & self.data.queens() {
+        for victim in self.data.piecemask().pieces_of_colour(!self.side) & self.data.piecemask().queens() {
             if !find_attackers(self.square_of_piece(victim), Piece::Queen) {
                 return;
             }
         }
 
-        for victim in self.data.pieces_of_colour(!self.side) & self.data.rooks() {
+        for victim in self.data.piecemask().pieces_of_colour(!self.side) & self.data.piecemask().rooks() {
             if !find_attackers(self.square_of_piece(victim), Piece::Rook) {
                 return;
             }
         }
 
-        for victim in self.data.pieces_of_colour(!self.side) & (self.data.knights() | self.data.bishops()) {
+        for victim in
+            self.data.piecemask().pieces_of_colour(!self.side) & (self.data.piecemask().knights() | self.data.piecemask().bishops())
+        {
             if !find_attackers(self.square_of_piece(victim), Piece::Bishop) {
                 return;
             }
         }
 
-        for victim in self.data.pieces_of_colour(!self.side) & self.data.pawns() {
+        for victim in self.data.piecemask().pieces_of_colour(!self.side) & self.data.piecemask().pawns() {
             if !find_attackers(self.square_of_piece(victim), Piece::Pawn) {
                 return;
             }
@@ -795,7 +799,7 @@ impl Board {
         self.generate_captures(v);
 
         // Pawns.
-        for pawn in self.data.pawns().and(Bitlist::mask_from_colour(self.side)) {
+        for pawn in self.data.piecemask().pawns().and(Bitlist::mask_from_colour(self.side)) {
             let from = self.data.square_of_piece(pawn);
             self.generate_pawn_quiet(v, from, &pininfo);
         }
@@ -811,7 +815,7 @@ impl Board {
             }
 
             // For every piece that attacks this square, find its location and add it to the move list.
-            for attacker in self.data.attacks_to(dest, self.side).and(!self.data.pawns()) {
+            for attacker in self.data.attacks_to(dest, self.side).and(!self.data.piecemask().pawns()) {
                 // It's illegal for kings to move to attacked squares; prune those out.
                 if self.data.piece_from_bit(attacker) == Piece::King && !self.data.attacks_to(dest, !self.side).empty() {
                     continue;
@@ -863,7 +867,8 @@ impl Board {
         let add_xrays = |mover_square: Square, our_attacks: &mut Bitlist, their_attacks: &mut Bitlist, moved_pieces: &Bitlist| {
             let mover_bitlist =
                 self.data.attacks_to(mover_square, Colour::White) | self.data.attacks_to(mover_square, Colour::Black);
-            let mover_bitlist = mover_bitlist & (self.data.bishops() | self.data.rooks() | self.data.queens());
+            let mover_bitlist =
+                mover_bitlist & (self.data.piecemask().bishops() | self.data.piecemask().rooks() | self.data.piecemask().queens());
             let mover_bitlist = mover_bitlist & moved_pieces.invert();
 
             let target_square_16x8 = Square16x8::from_square(m.dest);
@@ -1005,17 +1010,6 @@ impl Board {
         }
 
         score
-    }
-
-    #[must_use]
-    pub const fn kings(&self) -> Bitlist {
-        self.data.kings()
-    }
-
-    /// Return a bitlist of all pieces.
-    #[must_use]
-    pub const fn pieces(&self) -> Bitlist {
-        self.data.pieces()
     }
 
     /// Given a piece index, return its piece type.
@@ -1206,7 +1200,9 @@ impl Board {
             return true;
         }
 
-        if (white_count == 2 && (white_knight_count == 1 || white_bishop_count == 1) && black_count == 1) || (black_count == 2 && (black_knight_count == 1 || black_bishop_count == 1) && white_count == 1) {
+        if (white_count == 2 && (white_knight_count == 1 || white_bishop_count == 1) && black_count == 1)
+            || (black_count == 2 && (black_knight_count == 1 || black_bishop_count == 1) && white_count == 1)
+        {
             return true;
         }
 

@@ -313,6 +313,7 @@ impl TryFrom<u8> for Rank {
 }
 
 impl Rank {
+    #[must_use]
     pub const fn north(self) -> Option<Self> {
         match self {
             Self::One => Some(Self::Two),
@@ -326,6 +327,7 @@ impl Rank {
         }
     }
 
+    #[must_use]
     pub const fn south(self) -> Option<Self> {
         match self {
             Self::One => None,
@@ -339,6 +341,7 @@ impl Rank {
         }
     }
 
+    #[must_use]
     pub fn is_relative_fourth(self, colour: Colour) -> bool {
         match colour {
             Colour::White => self == Self::Four,
@@ -346,6 +349,7 @@ impl Rank {
         }
     }
 
+    #[must_use]
     pub fn is_relative_eighth(self, colour: Colour) -> bool {
         match colour {
             Colour::White => self == Self::Eight,
@@ -416,6 +420,7 @@ impl TryFrom<u8> for File {
 }
 
 impl File {
+    #[must_use]
     pub const fn east(self) -> Option<Self> {
         match self {
             Self::A => Some(Self::B),
@@ -429,6 +434,7 @@ impl File {
         }
     }
 
+    #[must_use]
     pub const fn west(self) -> Option<Self> {
         match self {
             Self::A => None,

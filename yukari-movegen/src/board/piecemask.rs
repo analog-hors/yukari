@@ -8,6 +8,12 @@ pub struct Piecemask {
     rqk: Bitlist,
 }
 
+impl Default for Piecemask {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Piecemask {
     pub const fn new() -> Self {
         Self { pbq: Bitlist::new(), nbk: Bitlist::new(), rqk: Bitlist::new() }
