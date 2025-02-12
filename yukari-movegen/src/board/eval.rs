@@ -1,6 +1,6 @@
 use std::simd::{cmp::SimdOrd, i16x64, i32x64, num::SimdInt};
 
-use crate::{Colour, Piece, Square};
+use crate::{Colour, File, Piece, Square};
 
 const HIDDEN_SIZE: usize = 768;
 const OUTPUT_BUCKETS: usize = 8;
@@ -23,7 +23,7 @@ pub struct Network {
 }
 
 static NNUE: Network = unsafe {
-    std::mem::transmute::<[u8; std::mem::size_of::<Network>()], Network>(*include_bytes!("../../../yukari_00f884a9.bin"))
+    std::mem::transmute::<[u8; std::mem::size_of::<Network>()], Network>(*include_bytes!("../../../yukari_2072eadd.bin"))
 };
 
 impl Network {
@@ -102,6 +102,14 @@ impl Eval {
         Self { white: Accumulator::new(&NNUE), black: Accumulator::new(&NNUE) }
     }
 
+    pub fn reset_colour(&mut self, colour: Colour) {
+        if colour == Colour::White {
+            self.white = Accumulator::new(&NNUE);
+        } else {
+            self.black = Accumulator::new(&NNUE);
+        }
+    }
+
     pub fn get(&self, piece_count: usize, colour: Colour) -> i32 {
         let output_bucket = (piece_count - 2) / DIVISOR;
         if colour == Colour::White {
@@ -111,37 +119,76 @@ impl Eval {
         }
     }
 
-    pub fn add_piece(&mut self, piece: Piece, square: Square, colour: Colour) {
+    pub fn add_piece_for_acc(&mut self, piece: Piece, square: Square, colour: Colour, white_king: Square, black_king: Square, white_acc: bool) {
+        let white_flip = if File::from(white_king) >= File::E { 7 } else { 0 };
+        let black_flip = if File::from(black_king) >= File::E { 7 } else { 0 };
+        let white_square = square.into_inner() as usize ^ white_flip;
+        let black_square = square.flip().into_inner() as usize ^ black_flip;
+
         if colour == Colour::White {
-            self.white.add_feature(64 * (piece as usize) + square.into_inner() as usize, &NNUE);
-            self.black.add_feature(64 * (6 + piece as usize) + square.flip().into_inner() as usize, &NNUE);
+            if white_acc {
+                self.white.add_feature(64 * (piece as usize) + white_square, &NNUE);
+            } else {
+                self.black.add_feature(64 * (6 + piece as usize) + black_square, &NNUE);
+            }
+        } else if white_acc {
+            self.white.add_feature(64 * (6 + piece as usize) + white_square, &NNUE);
         } else {
-            self.black.add_feature(64 * (piece as usize) + square.flip().into_inner() as usize, &NNUE);
-            self.white.add_feature(64 * (6 + piece as usize) + square.into_inner() as usize, &NNUE);
+            self.black.add_feature(64 * (piece as usize) + black_square, &NNUE);
         }
     }
 
-    pub fn remove_piece(&mut self, piece: Piece, square: Square, colour: Colour) {
+    pub fn add_piece(&mut self, piece: Piece, square: Square, colour: Colour, white_king: Square, black_king: Square) {
+        let white_flip = if File::from(white_king) >= File::E { 7 } else { 0 };
+        let black_flip = if File::from(black_king) >= File::E { 7 } else { 0 };
+        let white_square = square.into_inner() as usize ^ white_flip;
+        let black_square = square.flip().into_inner() as usize ^ black_flip;
+
         if colour == Colour::White {
-            self.white.remove_feature(64 * (piece as usize) + square.into_inner() as usize, &NNUE);
-            self.black.remove_feature(64 * (6 + piece as usize) + square.flip().into_inner() as usize, &NNUE);
+            self.white.add_feature(64 * (piece as usize) + white_square, &NNUE);
+            self.black.add_feature(64 * (6 + piece as usize) + black_square, &NNUE);
         } else {
-            self.black.remove_feature(64 * (piece as usize) + square.flip().into_inner() as usize, &NNUE);
-            self.white.remove_feature(64 * (6 + piece as usize) + square.into_inner() as usize, &NNUE);
+            self.black.add_feature(64 * (piece as usize) + black_square, &NNUE);
+            self.white.add_feature(64 * (6 + piece as usize) + white_square, &NNUE);
         }
     }
 
-    pub fn move_piece(&mut self, piece: Piece, from_square: Square, to_square: Square, colour: Colour) {
+    pub fn remove_piece_for_acc(&mut self, piece: Piece, square: Square, colour: Colour, white_king: Square, black_king: Square, white_acc: bool) {
+        let white_flip = if File::from(white_king) >= File::E { 7 } else { 0 };
+        let black_flip = if File::from(black_king) >= File::E { 7 } else { 0 };
+        let white_square = square.into_inner() as usize ^ white_flip;
+        let black_square = square.flip().into_inner() as usize ^ black_flip;
+
         if colour == Colour::White {
-            self.white.remove_feature(64 * (piece as usize) + from_square.into_inner() as usize, &NNUE);
-            self.black.remove_feature(64 * (6 + piece as usize) + from_square.flip().into_inner() as usize, &NNUE);
-            self.white.add_feature(64 * (piece as usize) + to_square.into_inner() as usize, &NNUE);
-            self.black.add_feature(64 * (6 + piece as usize) + to_square.flip().into_inner() as usize, &NNUE);
+            if white_acc {
+                self.white.remove_feature(64 * (piece as usize) + white_square, &NNUE);
+            } else {
+                self.black.remove_feature(64 * (6 + piece as usize) + black_square, &NNUE);
+            }
+        } else if white_acc {
+            self.white.remove_feature(64 * (6 + piece as usize) + white_square, &NNUE);
         } else {
-            self.black.remove_feature(64 * (piece as usize) + from_square.flip().into_inner() as usize, &NNUE);
-            self.white.remove_feature(64 * (6 + piece as usize) + from_square.into_inner() as usize, &NNUE);
-            self.black.add_feature(64 * (piece as usize) + to_square.flip().into_inner() as usize, &NNUE);
-            self.white.add_feature(64 * (6 + piece as usize) + to_square.into_inner() as usize, &NNUE);
+            self.black.remove_feature(64 * (piece as usize) + black_square, &NNUE);
         }
+    }
+
+    pub fn remove_piece(&mut self, piece: Piece, square: Square, colour: Colour, white_king: Square, black_king: Square) {
+        let white_flip = if File::from(white_king) >= File::E { 7 } else { 0 };
+        let black_flip = if File::from(black_king) >= File::E { 7 } else { 0 };
+        let white_square = square.into_inner() as usize ^ white_flip;
+        let black_square = square.flip().into_inner() as usize ^ black_flip;
+
+        if colour == Colour::White {
+            self.white.remove_feature(64 * (piece as usize) + white_square, &NNUE);
+            self.black.remove_feature(64 * (6 + piece as usize) + black_square, &NNUE);
+        } else {
+            self.black.remove_feature(64 * (piece as usize) + black_square, &NNUE);
+            self.white.remove_feature(64 * (6 + piece as usize) + white_square, &NNUE);
+        }
+    }
+
+    pub fn move_piece(&mut self, piece: Piece, from_square: Square, to_square: Square, colour: Colour, white_king: Square, black_king: Square) {
+        self.remove_piece(piece, from_square, colour, white_king, black_king);
+        self.add_piece(piece, to_square, colour, white_king, black_king);
     }
 }

@@ -9,7 +9,7 @@ use super::{
 use crate::{
     colour::Colour,
     piece::Piece,
-    square::{Direction, Square, Square16x8},
+    square::{Direction, Square, Square16x8}, File,
 };
 
 #[allow(clippy::module_name_repetitions)]
@@ -121,7 +121,10 @@ impl BoardData {
         self.piecelist.add_piece(piece_index, square);
         self.index.add_piece(piece_index, square);
         Zobrist::add_piece(colour, self.piece_from_bit(piece_index), square, &mut self.hash);
-        self.eval.add_piece(piece, square, colour);
+
+        let white_king = self.king_square(Colour::White);
+        let black_king = self.king_square(Colour::Black);
+        self.eval.add_piece(piece, square, colour, white_king, black_king);
 
         if update {
             self.update_attacks(square, piece_index, piece, true, None);
@@ -137,11 +140,25 @@ impl BoardData {
         self.piecelist.remove_piece(piece_index, square);
         self.index.remove_piece(piece_index, square);
         Zobrist::remove_piece(piece_index.colour(), piece, square, &mut self.hash);
-        self.eval.remove_piece(piece, square, piece_index.colour());
+
+        let white_king = self.king_square(Colour::White);
+        let black_king = self.king_square(Colour::Black);
+        self.eval.remove_piece(piece, square, piece_index.colour(), white_king, black_king);
 
         if update {
             self.update_attacks(square, piece_index, piece, false, None);
             self.update_sliders(square, true);
+        }
+    }
+
+    pub fn rebuild_accumulators(&mut self) {
+        let white_king = self.king_square(Colour::White);
+        let black_king = self.king_square(Colour::Black);
+        self.eval = Eval::new();
+        for square in 0..64 {
+            let square = unsafe { Square::from_u8_unchecked(square) };
+            let Some(square_piece_index) = self.index[square] else { continue };
+            self.eval.add_piece(self.piece_from_bit(square_piece_index), square, square_piece_index.colour(), white_king, black_king);
         }
     }
 
@@ -166,7 +183,26 @@ impl BoardData {
         self.piecelist.move_piece(piece_index, to_square);
         self.index.move_piece(piece_index, from_square, to_square);
         Zobrist::move_piece(piece_index.colour(), piece, from_square, to_square, &mut self.hash);
-        self.eval.move_piece(piece, from_square, to_square, piece_index.colour());
+
+        let white_king = self.king_square(Colour::White);
+        let black_king = self.king_square(Colour::Black);
+
+        let from_file = File::from(from_square);
+        let to_file = File::from(to_square);
+        if piece == Piece::King && ((from_file >= File::E && to_file <= File::D) || (from_file <= File::D && to_file >= File::E)) {
+            // we need to rebuild the accumulator ;~;
+            self.eval.reset_colour(piece_index.colour());
+            for square in 0..64 {
+                let square = unsafe { Square::from_u8_unchecked(square) };
+                let Some(square_piece_index) = self.index[square] else { continue };
+                self.eval.add_piece_for_acc(self.piece_from_bit(square_piece_index), square, square_piece_index.colour(), white_king, black_king, piece_index.is_white());
+            }
+
+            self.eval.remove_piece_for_acc(piece, from_square, piece_index.colour(), white_king, black_king, !piece_index.is_white());
+            self.eval.add_piece_for_acc(piece, to_square, piece_index.colour(), white_king, black_king, !piece_index.is_white());
+        } else {
+            self.eval.move_piece(piece, from_square, to_square, piece_index.colour(), white_king, black_king);
+        }
 
         if slide_dir.is_some() {
             self.bitlist.remove_piece(to_square, piece_index);

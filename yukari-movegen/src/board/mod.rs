@@ -261,6 +261,7 @@ impl Board {
         }
 
         b.data.rebuild_attacks();
+        b.data.rebuild_accumulators();
 
         if b.illegal() {
             return None;
