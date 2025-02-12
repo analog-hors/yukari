@@ -114,7 +114,7 @@ impl Yukari {
     pub fn search(&mut self, best_pv: &mut ArrayVec<[Move; 64]>, tt: &mut [TtEntry], protocol: Protocol) {
         let start = Instant::now();
         let (soft_limit, hard_limit) = self.tc.search_time();
-        let soft_limit = start + Duration::from_secs_f32(soft_limit);
+        let mut soft_limit = start + Duration::from_secs_f32(soft_limit);
         let hard_limit = start + Duration::from_secs_f32(hard_limit);
 
         // while I love xboard protocol for its ease of parsing, the way fixed-nodes searching is implemented is *bad*.
@@ -135,6 +135,7 @@ impl Yukari {
         let mut pv = ArrayVec::new();
         let max_depth = self.max_depth.unwrap_or(63);
         while depth <= max_depth {
+            println!("# time limits: soft {}s, hard {}s", (soft_limit - start).as_secs_f32(), (hard_limit - start).as_secs_f32());
             let mut lower_bound = 50;
             let mut upper_bound = 50;
             loop {
@@ -196,6 +197,17 @@ impl Yukari {
             if stop_after.is_some() && Instant::now() >= hard_limit {
                 break;
             }
+            // Modify time to search based on best move stability.
+            if matches!(self.tc.mode, TimeMode::Incremental { base: _, increment: _ }) && !pv.is_empty() && !best_pv.is_empty() {
+                if pv[0] == best_pv[0] {
+                    let soft_limit_diff = soft_limit - start;
+                    soft_limit = start + soft_limit_diff.mul_f64(0.95);
+                } else {
+                    let soft_limit_diff = soft_limit - start;
+                    soft_limit = start + soft_limit_diff.mul_f64(1.05);
+                }
+            }
+
             // If we have a pv that's not just empty from bailing out use that as our best moves
             best_pv.clone_from(&pv);
 
